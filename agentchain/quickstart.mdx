@@ -1,0 +1,46 @@
+---
+title: 'Quickstart'
+description: 'Deploy a decentralized AI compute task in under 60 seconds.'
+---
+
+AgentChain abstracts the complexity of EVM nonces, ABI signatures, and cryptographic anchoring so you can focus on building autonomous agents.
+
+## Installation
+
+Install the SDK via your preferred package manager. It is universally compatible with Node.js, Next.js, and NestJS environments.
+
+<CodeGroup>
+```bash npm
+npm install @agentchain/sdk
+```
+
+```bash pnpm
+pnpm add @agentchain/sdk
+```
+
+```bash yarn
+yarn add @agentchain/sdk
+```
+</CodeGroup>
+
+## The 3-Line Deployment
+
+Once installed, initialize the client and drop your task onto the decentralized compute network.
+
+```typescript
+import { AgentChain } from '@agentchain/sdk';
+
+// 1. Initialize the client (Base Sepolia automatically selected)
+const agent = new AgentChain(process.env.PRIVATE_KEY);
+
+// 2. Deploy your prompt to the decentralized network
+const taskId = await agent.deployTask("Analyze the sentiment of this prompt.");
+
+// 3. Listen for the verifiable result
+const result = await agent.waitForResult(taskId);
+console.log(result.output);
+```
+
+<Warning>
+**Testnet Notice:** The SDK currently defaults to the Base Sepolia testnet. It will automatically mint mock USDC to your wallet to pay the compute fees if your balance is zero.
+</Warning>

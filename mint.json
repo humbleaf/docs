@@ -1,0 +1,82 @@
+{
+  "name": "humbleaf",
+  "theme": "quill",
+  "colors": {
+    "primary": "#D4AF37",
+    "light": "#F3E5AB",
+    "dark": "#B8860B"
+  },
+  "favicon": "/favicon.svg",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "openapi": "openapi.json",
+  "tabs": [
+    {
+      "name": "AgentChain",
+      "url": "agentchain"
+    },
+    {
+      "name": "PRIOR Protocol",
+      "url": "prior"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting started",
+      "pages": [
+        "agentchain/quickstart",
+        "agentchain/architecture",
+        "agentchain/node-operators"
+      ]
+    },
+    {
+      "group": "AgentChain SDK",
+      "pages": [
+        "agentchain/sdk/compute-client",
+        "agentchain/sdk/types"
+      ]
+    },
+    {
+      "group": "Core Protocol",
+      "pages": [
+        "prior/overview",
+        "prior/anchoring"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "prior/api-reference/introduction",
+        "prior/upload-context-payload-or-json-to-prior-ipfs"
+      ]
+    }
+  ],
+  "anchors": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/humbleaf/AgentChain",
+      "icon": "github"
+    },
+    {
+      "name": "Explorer UI",
+      "url": "https://agentchain.network",
+      "icon": "globe"
+    }
+  ],
+  "topbarLinks": [
+    {
+      "name": "Support",
+      "url": "mailto:hello@humbleaf.com"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Launch App",
+    "url": "https://agentchain.network"
+  },
+  "footerSocials": {
+    "x": "https://x.com/humbleaf",
+    "github": "https://github.com/humbleaf"
+  }
+}
