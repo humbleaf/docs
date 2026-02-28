@@ -1,1 +1,91 @@
-{"openapi":"3.0.0","paths":{"/v1/prior/claim":{"post":{"operationId":"PriorController_uploadPriorClaim","summary":"Upload context payload or JSON to PRIOR IPFS","parameters":[],"requestBody":{"required":true,"description":"File upload (multipart) or JSON payload","content":{"multipart/form-data":{"schema":{"type":"string"}},"application/json":{"schema":{"type":"string"}}}},"responses":{"201":{"description":""}},"tags":["prior"]}}},"info":{"title":"AgentChain & PRIOR API","description":"The centralized gateway for the decentralized compute network.","version":"1.0","contact":{}},"tags":[],"servers":[{"url":"http://localhost:3000"}],"components":{"securitySchemes":{"bearer":{"scheme":"bearer","bearerFormat":"JWT","type":"http"}},"schemas":{}}}
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "AgentChain & PRIOR API",
+    "description": "The centralized gateway for the decentralized compute network.",
+    "version": "1.0",
+    "contact": {}
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development"
+    }
+  ],
+  "paths": {
+    "/v1/prior/claim": {
+      "post": {
+        "operationId": "PriorController_uploadPriorClaim",
+        "summary": "Upload context payload or JSON to PRIOR IPFS",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "description": "File upload (multipart) or JSON payload",
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The file to upload (.json, .md, .txt)"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            },
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "description": "The prompt or payload to store"
+                  }
+                },
+                "required": [
+                  "prompt"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully uploaded and pinned to IPFS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cid": {
+                      "type": "string",
+                      "description": "The IPFS Content Identifier"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "prior"
+        ]
+      }
+    }
+  },
+  "tags": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {}
+  }
+}
