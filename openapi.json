@@ -716,6 +716,175 @@
                 ]
             }
         },
+        "/api/v1/tasks": {
+            "get": {
+                "operationId": "TaskController_listTasks",
+                "summary": "List tasks (paginated)",
+                "description": "Returns a paginated list of tasks with optional filters by status, taskType, or operatorId.",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "Page number (default: 1)",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "description": "Items per page (default: 20, max: 100)",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "required": false,
+                        "in": "query",
+                        "description": "Filter by status (COMPLETED, FAILED, PROCESSING)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "taskType",
+                        "required": false,
+                        "in": "query",
+                        "description": "Filter by task type (general, code, analysis, creative, trade_signal)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "operatorId",
+                        "required": false,
+                        "in": "query",
+                        "description": "Filter by operator ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated task list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "taskType": {
+                                                        "type": "string"
+                                                    },
+                                                    "status": {
+                                                        "type": "string"
+                                                    },
+                                                    "agentId": {
+                                                        "type": "string"
+                                                    },
+                                                    "model": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "provider": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "latencyMs": {
+                                                        "type": "number",
+                                                        "nullable": true
+                                                    },
+                                                    "ipfsCid": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "stateRoot": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "verificationStatus": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "verificationScore": {
+                                                        "type": "number",
+                                                        "nullable": true
+                                                    },
+                                                    "createdAt": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "completedAt": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "nullable": true
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "total": {
+                                            "type": "number"
+                                        },
+                                        "page": {
+                                            "type": "number"
+                                        },
+                                        "limit": {
+                                            "type": "number"
+                                        },
+                                        "totalPages": {
+                                            "type": "number"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "tasks"
+                ]
+            }
+        },
+        "/api/v1/tasks/{id}": {
+            "get": {
+                "operationId": "TaskController_getTask",
+                "summary": "Get task by ID",
+                "description": "Returns a single task summary by its ID.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "description": "Task ID (cuid)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Task found"
+                    },
+                    "404": {
+                        "description": "Task not found"
+                    }
+                },
+                "tags": [
+                    "tasks"
+                ]
+            }
+        },
         "/api/v1/tasks/submit": {
             "post": {
                 "operationId": "TaskController_submitTask",
@@ -846,7 +1015,12 @@
     "tags": [],
     "servers": [
         {
-            "url": "http://localhost:3000"
+            "url": "http://localhost:3000",
+            "description": "Local Gateway"
+        },
+        {
+            "url": "https://api.agentchain.xyz",
+            "description": "Production"
         }
     ],
     "components": {

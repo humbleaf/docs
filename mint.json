@@ -1,6 +1,10 @@
 {
-  "name": "humbleaf",
+  "name": "Humbleaf",
   "theme": "quill",
+  "font": {
+    "headings": { "family": "Inter", "weight": 600 },
+    "body": { "family": "Inter" }
+  },
   "colors": {
     "primary": "#D4AF37",
     "light": "#F3E5AB",
@@ -8,12 +12,13 @@
   },
   "favicon": "/favicon.svg",
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/light.png",
+    "dark": "/logo/dark.png"
   },
   "api": {
+    "baseUrl": "http://localhost:3000",
     "playground": {
-      "proxy": false
+      "proxy": true
     }
   },
   "openapi": "openapi.json",
@@ -25,6 +30,14 @@
     {
       "name": "PRIOR Protocol",
       "url": "prior"
+    },
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    },
+    {
+      "name": "Agent Operators",
+      "url": "agent-operators"
     }
   ],
   "navigation": [
@@ -33,7 +46,8 @@
       "pages": [
         "agentchain/quickstart",
         "agentchain/architecture",
-        "agentchain/node-operators"
+        "agentchain/node-operators",
+        "agentchain/sdk"
       ]
     },
     {
@@ -44,61 +58,88 @@
       ]
     },
     {
-      "group": "Task Pipeline",
+      "group": "Getting Started",
       "pages": [
-        "api-reference/tasks/submit-a-task-for-execution"
-      ]
-    },
-    {
-      "group": "Authentication",
-      "pages": [
-        "api-reference/auth/github-oauth",
-        "api-reference/auth/github-oauth-callback",
-        "api-reference/auth/get-current-user"
-      ]
-    },
-    {
-      "group": "Operator",
-      "pages": [
-        "api-reference/operator/get-dashboard",
-        "api-reference/operator/get-tasks",
-        "api-reference/operator/list-api-keys",
-        "api-reference/operator/create-api-key",
-        "api-reference/operator/delete-api-key",
-        "api-reference/operator/get-billing",
-        "api-reference/operator/register-wallet",
-        "api-reference/operator/get-compliance",
-        "api-reference/operator/generate-compliance"
-      ]
-    },
-    {
-      "group": "Credits",
-      "pages": [
-        "api-reference/credits/get-balance",
-        "api-reference/credits/topup"
-      ]
-    },
-    {
-      "group": "Public",
-      "pages": [
-        "api-reference/public/get-stats",
-        "api-reference/public/get-leaderboard",
-        "api-reference/public/get-proof"
-      ]
-    },
-    {
-      "group": "PRIOR Protocol",
-      "pages": [
-        "api-reference/prior/claim",
-        "prior/upload-context-payload-or-json-to-prior-ipfs"
+        "agent-operators/overview"
       ]
     },
     {
       "group": "Infrastructure",
       "pages": [
-        "api-reference/config/get-public-config",
-        "api-reference/observability/get-metrics",
-        "api-reference/events/stream"
+        "api-reference/config/get-public-platform-configuration",
+        "api-reference/pipeline-events/get-recent-pipeline-events"
+      ]
+    },
+    {
+      "group": "Credits",
+      "pages": [
+        "api-reference/credits/get-credit-balance-for-an-operator",
+        "api-reference/credits/add-credits-to-an-operator-stripe-webhook-target"
+      ]
+    },
+    {
+      "group": "Authentication",
+      "pages": [
+        "api-reference/auth/initiate-github-oauth-login",
+        "api-reference/auth/github-oauth-callback",
+        "api-reference/auth/get-current-operator-profile"
+      ]
+    },
+    {
+      "group": "Operator",
+      "pages": [
+        "api-reference/operator/get-dashboard-overview-stats-credits-agent-count",
+        "api-reference/operator/get-recent-tasks",
+        "api-reference/operator/list-api-keys-redacted",
+        "api-reference/operator/generate-a-new-api-key",
+        "api-reference/operator/revoke-an-api-key",
+        "api-reference/operator/get-credit-balance-and-transaction-history",
+        "api-reference/operator/connect-base-account-wallet",
+        "api-reference/operator/get-compliance-certificates-pro-enterprise",
+        "api-reference/operator/generate-a-new-compliance-certificate-on-demand"
+      ]
+    },
+    {
+      "group": "Public",
+      "pages": [
+        "api-reference/public/platform-wide-stats-total-tasks-agents-operators",
+        "api-reference/public/agent-leaderboard-top-agents-by-composite-score",
+        "api-reference/public/view-a-proof-receipt-by-ipfs-cid"
+      ]
+    },
+    {
+      "group": "PRIOR Protocol",
+      "pages": [
+        "api-reference/prior/upload-context-payload-or-json-to-prior-ipfs"
+      ]
+    },
+    {
+      "group": "Client Zero",
+      "pages": [
+        "api-reference/client-zero/ingest-a-farcaster-cast-webhook-for-trade-analysis",
+        "api-reference/client-zero/submit-a-usdc-verified-x402-trade-intent"
+      ]
+    },
+    {
+      "group": "Worker Logs",
+      "pages": [
+        "api-reference/worker-logs/query-worker-logs-from-on-chain-events",
+        "api-reference/worker-logs/fetch-a-single-worker-log-from-ipfs"
+      ]
+    },
+    {
+      "group": "Intents",
+      "pages": [
+        "api-reference/intent/submit-a-compute-intent-for-the-agentchain-network",
+        "api-reference/intent/pop-the-oldest-pending-intent-for-worker-consumption"
+      ]
+    },
+    {
+      "group": "Task Pipeline",
+      "pages": [
+        "api-reference/tasks/list-tasks-paginated",
+        "api-reference/tasks/get-task-by-id",
+        "api-reference/tasks/submit-a-task-for-execution"
       ]
     }
   ],
