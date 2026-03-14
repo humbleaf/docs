@@ -1,91 +1,888 @@
 {
-  "openapi": "3.0.0",
-  "info": {
-    "title": "AgentChain & PRIOR API",
-    "description": "The centralized gateway for the decentralized compute network.",
-    "version": "1.0",
-    "contact": {}
-  },
-  "servers": [
-    {
-      "url": "http://localhost:3000",
-      "description": "Local development"
-    }
-  ],
-  "paths": {
-    "/v1/prior/claim": {
-      "post": {
-        "operationId": "PriorController_uploadPriorClaim",
-        "summary": "Upload context payload or JSON to PRIOR IPFS",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "description": "File upload (multipart) or JSON payload",
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary",
-                    "description": "The file to upload (.json, .md, .txt)"
-                  }
-                },
-                "required": [
-                  "file"
-                ]
-              }
-            },
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "prompt": {
-                    "type": "string",
-                    "description": "The prompt or payload to store"
-                  }
-                },
-                "required": [
-                  "prompt"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Successfully uploaded and pinned to IPFS",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "cid": {
-                      "type": "string",
-                      "description": "The IPFS Content Identifier"
+    "openapi": "3.0.0",
+    "paths": {
+        "/api/v1/config/public": {
+            "get": {
+                "operationId": "ConfigRegistryController_getPublicConfig",
+                "summary": "Get public platform configuration",
+                "description": "Returns non-sensitive configuration for frontend sync (tier definitions, pricing, thresholds).",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Public configuration object",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "tiers.free.monthlyCredits": 10,
+                                        "tiers.pro.monthlyCredits": 100,
+                                        "tiers.pro.priceMonthlyUsd": 15,
+                                        "credits.topUpPacks": [
+                                            {
+                                                "credits": 50,
+                                                "priceUsd": 5
+                                            },
+                                            {
+                                                "credits": 200,
+                                                "priceUsd": 15
+                                            },
+                                            {
+                                                "credits": 1000,
+                                                "priceUsd": 50
+                                            }
+                                        ],
+                                        "leaderboard.pioneer.taskPoints": 10
+                                    }
+                                }
+                            }
+                        }
                     }
-                  }
-                }
-              }
+                },
+                "tags": [
+                    "config"
+                ]
             }
-          }
         },
-        "tags": [
-          "prior"
-        ]
-      }
-    }
-  },
-  "tags": [],
-  "components": {
-    "securitySchemes": {
-      "bearer": {
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "type": "http"
-      }
+        "/api/v1/credits/balance/{operatorId}": {
+            "get": {
+                "operationId": "CreditLedgerController_getBalance",
+                "summary": "Get credit balance for an operator",
+                "parameters": [
+                    {
+                        "name": "operatorId",
+                        "required": true,
+                        "in": "path",
+                        "description": "Operator ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Credit balance details"
+                    }
+                },
+                "tags": [
+                    "credits"
+                ]
+            }
+        },
+        "/api/v1/credits/topup": {
+            "post": {
+                "operationId": "CreditLedgerController_topUp",
+                "summary": "Add credits to an operator (Stripe webhook target)",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "operatorId",
+                                    "amount",
+                                    "source"
+                                ],
+                                "properties": {
+                                    "operatorId": {
+                                        "type": "string"
+                                    },
+                                    "amount": {
+                                        "type": "number"
+                                    },
+                                    "source": {
+                                        "type": "string",
+                                        "example": "stripe_topup"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "credits"
+                ]
+            }
+        },
+        "/api/v1/auth/github": {
+            "get": {
+                "operationId": "AuthController_githubLogin",
+                "summary": "Initiate GitHub OAuth login",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "auth"
+                ]
+            }
+        },
+        "/api/v1/auth/github/callback": {
+            "get": {
+                "operationId": "AuthController_githubCallback",
+                "summary": "GitHub OAuth callback",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "auth"
+                ]
+            }
+        },
+        "/api/v1/auth/me": {
+            "get": {
+                "operationId": "AuthController_getProfile",
+                "summary": "Get current operator profile",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Operator profile with dashboard stats"
+                    }
+                },
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/metrics": {
+            "get": {
+                "operationId": "PrometheusController_index",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/operator/dashboard": {
+            "get": {
+                "operationId": "OperatorController_getDashboard",
+                "summary": "Get dashboard overview (stats, credits, agent count)",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/tasks": {
+            "get": {
+                "operationId": "OperatorController_getTasks",
+                "summary": "Get recent tasks",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/keys": {
+            "get": {
+                "operationId": "OperatorController_listKeys",
+                "summary": "List API keys (redacted)",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "OperatorController_createKey",
+                "summary": "Generate a new API key",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/keys/{keyId}": {
+            "delete": {
+                "operationId": "OperatorController_revokeKey",
+                "summary": "Revoke an API key",
+                "parameters": [
+                    {
+                        "name": "keyId",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/billing": {
+            "get": {
+                "operationId": "OperatorController_getBilling",
+                "summary": "Get credit balance and transaction history",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/wallet": {
+            "post": {
+                "operationId": "OperatorController_connectWallet",
+                "summary": "Connect Base Account wallet",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/compliance": {
+            "get": {
+                "operationId": "OperatorController_getCompliance",
+                "summary": "Get compliance certificates (PRO/ENTERPRISE)",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/compliance/generate": {
+            "post": {
+                "operationId": "OperatorController_generateCompliance",
+                "summary": "Generate a new compliance certificate on demand",
+                "parameters": [],
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/public/stats": {
+            "get": {
+                "operationId": "PublicController_getStats",
+                "summary": "Platform-wide stats (total tasks, agents, operators)",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Platform statistics",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "totalTasks": {
+                                            "type": "number"
+                                        },
+                                        "totalOperators": {
+                                            "type": "number"
+                                        },
+                                        "totalAgents": {
+                                            "type": "number"
+                                        },
+                                        "avgLatencyMs": {
+                                            "type": "number"
+                                        },
+                                        "verificationRate": {
+                                            "type": "number"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "public"
+                ]
+            }
+        },
+        "/api/v1/public/leaderboard": {
+            "get": {
+                "operationId": "PublicController_getLeaderboard",
+                "summary": "Agent leaderboard (top agents by composite score)",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "description": "Max results (default 20)",
+                        "schema": {
+                            "type": "number"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "public"
+                ]
+            }
+        },
+        "/api/v1/public/proof/{cid}": {
+            "get": {
+                "operationId": "PublicController_getProof",
+                "summary": "View a proof receipt by IPFS CID",
+                "parameters": [
+                    {
+                        "name": "cid",
+                        "required": true,
+                        "in": "path",
+                        "description": "IPFS CID of the proof receipt",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "public"
+                ]
+            }
+        },
+        "/events/stream": {
+            "get": {
+                "operationId": "EventsController_stream",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/v1/prior/claim": {
+            "post": {
+                "operationId": "PriorController_uploadPriorClaim",
+                "summary": "Upload context payload or JSON to PRIOR IPFS",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "description": "File upload (multipart) or JSON payload",
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "string"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "prior"
+                ]
+            }
+        },
+        "/webhook/farcaster": {
+            "post": {
+                "operationId": "ClientZeroController_handleFarcasterWebhook",
+                "summary": "Ingest a Farcaster cast webhook for trade analysis",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FarcasterWebhookDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Cast accepted and queued for processing"
+                    },
+                    "400": {
+                        "description": "No $CASHTAG found or malformed payload"
+                    },
+                    "401": {
+                        "description": "Invalid or missing webhook signature"
+                    }
+                },
+                "tags": [
+                    "Client Zero"
+                ]
+            }
+        },
+        "/webhook/x402/submit": {
+            "post": {
+                "operationId": "ClientZeroController_handleX402Submit",
+                "summary": "Submit a USDC-verified x402 trade intent",
+                "parameters": [
+                    {
+                        "name": "X-402-Payment",
+                        "in": "header",
+                        "description": "Base64-encoded JSON: { txHash, amount, payer, chainId }",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Payment verified, intent queued"
+                    },
+                    "400": {
+                        "description": "No $CASHTAG found in request body"
+                    },
+                    "402": {
+                        "description": "Payment required or verification failed"
+                    }
+                },
+                "tags": [
+                    "Client Zero"
+                ]
+            }
+        },
+        "/v1/logs": {
+            "get": {
+                "operationId": "WorkerLogsController_queryLogs",
+                "summary": "Query worker logs from on-chain events",
+                "description": "Fetches IntentExecuted events from ShadowVault, hydrates log content from IPFS. Pagination is block-range-based (fromBlock/toBlock), not offset-based.",
+                "parameters": [
+                    {
+                        "name": "fromBlock",
+                        "required": false,
+                        "in": "query",
+                        "description": "Start block number",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "toBlock",
+                        "required": false,
+                        "in": "query",
+                        "description": "End block number",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "description": "Max results (default: 50)",
+                        "schema": {
+                            "type": "number"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Worker Logs"
+                ]
+            }
+        },
+        "/v1/logs/{cid}": {
+            "get": {
+                "operationId": "WorkerLogsController_getLogByCid",
+                "summary": "Fetch a single worker log from IPFS",
+                "description": "Retrieves the full WorkerLogEntry JSON from Pinata IPFS gateway by CID.",
+                "parameters": [
+                    {
+                        "name": "cid",
+                        "required": true,
+                        "in": "path",
+                        "description": "IPFS CID of the log entry",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Worker Logs"
+                ]
+            }
+        },
+        "/api/pipeline/events": {
+            "get": {
+                "operationId": "PipelineEventsController_getEvents",
+                "summary": "Get recent pipeline events",
+                "description": "Returns the most recent pipeline events from the Client Zero trade execution pipeline. Events include job acceptance, processing, LLM inference, IPFS pinning, and on-chain settlement.",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "description": "Max events to return (default: 20, max: 100)",
+                        "schema": {
+                            "type": "number"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Pipeline Events"
+                ]
+            }
+        },
+        "/v1/intent": {
+            "post": {
+                "operationId": "IntentController_submitIntent",
+                "summary": "Submit a compute intent for the AgentChain network",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "description": "JSON intent payload with bounty amount",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "payload": {
+                                        "type": "object",
+                                        "description": "The compute task data"
+                                    },
+                                    "bounty": {
+                                        "type": "string",
+                                        "description": "USDC bounty amount as decimal string (6 decimals)"
+                                    },
+                                    "requiredCollateral": {
+                                        "type": "string",
+                                        "description": "Shadow Vault v3: required collateral in USDC (optional, 0 = default)"
+                                    }
+                                },
+                                "required": [
+                                    "payload",
+                                    "bounty"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Intent queued for settlement"
+                    },
+                    "400": {
+                        "description": "Missing required fields"
+                    },
+                    "413": {
+                        "description": "Payload exceeds 2MB limit"
+                    }
+                },
+                "tags": [
+                    "intent"
+                ]
+            }
+        },
+        "/v1/intent/tasks/pending": {
+            "get": {
+                "operationId": "IntentController_getPendingTask",
+                "summary": "Pop the oldest pending intent for worker consumption",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Pending intent returned"
+                    },
+                    "204": {
+                        "description": "No pending intents"
+                    }
+                },
+                "tags": [
+                    "intent"
+                ]
+            }
+        },
+        "/api/v1/tasks/submit": {
+            "post": {
+                "operationId": "TaskController_submitTask",
+                "summary": "Submit a task for execution",
+                "description": "Full 8-stage pipeline: guardrail \u2192 credit \u2192 compute \u2192 verify \u2192 anchor \u2192 receipt",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "prompt",
+                                    "taskType",
+                                    "agentId"
+                                ],
+                                "properties": {
+                                    "prompt": {
+                                        "type": "string",
+                                        "description": "The prompt/instruction for the LLM",
+                                        "example": "Analyze the sentiment of the following text: \"Bitcoin is looking bullish today\""
+                                    },
+                                    "taskType": {
+                                        "type": "string",
+                                        "enum": [
+                                            "general",
+                                            "code",
+                                            "analysis",
+                                            "creative",
+                                            "trade_signal"
+                                        ],
+                                        "description": "Type of task",
+                                        "example": "analysis"
+                                    },
+                                    "agentId": {
+                                        "type": "string",
+                                        "description": "Agent fingerprint ID (unique per agent)",
+                                        "example": "agent-alpha-001"
+                                    },
+                                    "metadata": {
+                                        "type": "object",
+                                        "description": "Optional metadata for the task"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Task executed \u2014 provenance receipt returned",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "taskId": {
+                                            "type": "string"
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "enum": [
+                                                "COMPLETED",
+                                                "UNMETERED",
+                                                "GUARDRAIL_BLOCKED",
+                                                "INSUFFICIENT_CREDITS",
+                                                "COMPUTE_FAILED",
+                                                "OUTPUT_BLOCKED"
+                                            ]
+                                        },
+                                        "agentId": {
+                                            "type": "string"
+                                        },
+                                        "model": {
+                                            "type": "string"
+                                        },
+                                        "provider": {
+                                            "type": "string"
+                                        },
+                                        "latencyMs": {
+                                            "type": "number"
+                                        },
+                                        "output": {
+                                            "type": "string"
+                                        },
+                                        "ipfsCid": {
+                                            "type": "string"
+                                        },
+                                        "stateRoot": {
+                                            "type": "string"
+                                        },
+                                        "verificationStatus": {
+                                            "type": "string"
+                                        },
+                                        "verificationScore": {
+                                            "type": "number"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or guardrail block"
+                    },
+                    "401": {
+                        "description": "Missing or invalid JWT"
+                    }
+                },
+                "tags": [
+                    "tasks"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        }
     },
-    "schemas": {}
-  }
+    "info": {
+        "title": "AgentChain & PRIOR API",
+        "description": "The centralized gateway for the decentralized compute network.",
+        "version": "1.0",
+        "contact": {}
+    },
+    "tags": [],
+    "servers": [
+        {
+            "url": "http://localhost:3000"
+        }
+    ],
+    "components": {
+        "securitySchemes": {
+            "bearer": {
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "type": "http"
+            }
+        },
+        "schemas": {
+            "FarcasterWebhookDto": {
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "The cast text containing a $CASHTAG mention",
+                        "example": "Just aping into $DEGEN, this is the way"
+                    },
+                    "fid": {
+                        "type": "number",
+                        "description": "Farcaster user ID (FID) of the caster",
+                        "example": 12345
+                    },
+                    "hash": {
+                        "type": "string",
+                        "description": "Unique hash of the Farcaster cast",
+                        "example": "0xabc123def456"
+                    }
+                },
+                "required": [
+                    "text",
+                    "fid",
+                    "hash"
+                ]
+            }
+        }
+    }
 }

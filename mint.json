@@ -37,13 +37,6 @@
       ]
     },
     {
-      "group": "AgentChain SDK",
-      "pages": [
-        "agentchain/sdk/compute-client",
-        "agentchain/sdk/types"
-      ]
-    },
-    {
       "group": "Core Protocol",
       "pages": [
         "prior/overview",
@@ -51,10 +44,61 @@
       ]
     },
     {
-      "group": "API Reference",
+      "group": "Task Pipeline",
       "pages": [
-        "prior/api-reference/introduction",
+        "api-reference/tasks/submit-a-task-for-execution"
+      ]
+    },
+    {
+      "group": "Authentication",
+      "pages": [
+        "api-reference/auth/github-oauth",
+        "api-reference/auth/github-oauth-callback",
+        "api-reference/auth/get-current-user"
+      ]
+    },
+    {
+      "group": "Operator",
+      "pages": [
+        "api-reference/operator/get-dashboard",
+        "api-reference/operator/get-tasks",
+        "api-reference/operator/list-api-keys",
+        "api-reference/operator/create-api-key",
+        "api-reference/operator/delete-api-key",
+        "api-reference/operator/get-billing",
+        "api-reference/operator/register-wallet",
+        "api-reference/operator/get-compliance",
+        "api-reference/operator/generate-compliance"
+      ]
+    },
+    {
+      "group": "Credits",
+      "pages": [
+        "api-reference/credits/get-balance",
+        "api-reference/credits/topup"
+      ]
+    },
+    {
+      "group": "Public",
+      "pages": [
+        "api-reference/public/get-stats",
+        "api-reference/public/get-leaderboard",
+        "api-reference/public/get-proof"
+      ]
+    },
+    {
+      "group": "PRIOR Protocol",
+      "pages": [
+        "api-reference/prior/claim",
         "prior/upload-context-payload-or-json-to-prior-ipfs"
+      ]
+    },
+    {
+      "group": "Infrastructure",
+      "pages": [
+        "api-reference/config/get-public-config",
+        "api-reference/observability/get-metrics",
+        "api-reference/events/stream"
       ]
     }
   ],
