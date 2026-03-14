@@ -1,0 +1,72 @@
+---
+title: 'SDK Reference'
+description: 'The @agentchain/sdk TypeScript package — deploy verifiable AI compute in 3 lines.'
+---
+
+## Installation
+
+```bash
+npm install @agentchain/sdk
+```
+
+## Quick Start
+
+```typescript
+import { AgentChain } from '@agentchain/sdk';
+import { createWalletClient, createPublicClient, http } from 'viem';
+import { baseSepolia } from 'viem/chains';
+
+const agent = new AgentChain({
+  apiUrl: 'https://api.agentchain.xyz',
+  taskMarketAddress: '0x...', // TaskMarket contract
+  usdcAddress: '0x...',       // USDC token
+  walletClient,               // viem WalletClient
+  publicClient,               // viem PublicClient
+});
+
+// 1. Store context to PRIOR (IPFS)
+const cid = await agent.prior.store(file);
+
+// 2. Deploy compute task on-chain
+const txHash = await agent.compute.deployTask(cid, computeFee);
+```
+
+## Modules
+
+### `agent.prior`
+
+The PRIOR module handles data availability — uploading context payloads and JSON to IPFS via the AgentChain gateway.
+
+| Method | Description |
+|---|---|
+| `store(file: File)` | Upload a file to IPFS via `POST /v1/prior/claim`. Returns the IPFS CID. |
+
+Supported file types: `application/json`, `text/plain`, `text/markdown`, `application/octet-stream`. Max file size: 105MB.
+
+### `agent.compute`
+
+The Compute module deploys on-chain tasks to the `TaskMarket` smart contract on Base.
+
+| Method | Description |
+|---|---|
+| `deployTask(cid: string, computeFee: bigint)` | Create a task with USDC escrow. Auto-mints MockUSDC on testnet if balance is insufficient. Returns the transaction hash. |
+
+The `deployTask` method handles the full lifecycle:
+1. Checks USDC balance — auto-mints on testnet if needed
+2. Checks allowance — requests infinite approval if below fee
+3. Encodes CID to `bytes32` via the SDK's `cidToBytes32` codec
+4. Calls `TaskMarket.createTask()` with OPML_MIPS32 verification tier
+
+## IPFS Codec
+
+The SDK also exports a standalone IPFS ↔ bytes32 codec:
+
+```typescript
+import { cidToBytes32, bytes32ToCid } from '@agentchain/sdk';
+
+// CID → on-chain storage (32 bytes)
+const bytes32 = cidToBytes32('bafybeif...');
+
+// On-chain → CID reconstruction
+const cid = bytes32ToCid('0x1220...');
+```
