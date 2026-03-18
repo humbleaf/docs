@@ -1004,6 +1004,200 @@
                     }
                 ]
             }
+        },
+        "/api/v1/fingerprints/{agentId}": {
+            "get": {
+                "operationId": "FingerprintController_getFingerprint",
+                "summary": "Get fingerprint for a specific agent",
+                "description": "Returns the Welford centroid, trust level, ARI, VCI, CQ, drift score, and normalized centroidMean for SVG avatar rendering.",
+                "parameters": [
+                    {
+                        "name": "agentId",
+                        "required": true,
+                        "in": "path",
+                        "description": "Agent fingerprint ID",
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Agent fingerprint with ARI, VCI, CQ and centroid",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "agentId": { "type": "string" },
+                                        "trustLevel": { "type": "string", "enum": ["PROBATIONARY", "STANDARD", "TRUSTED", "VERIFIED"] },
+                                        "ari": { "type": "number", "description": "Agent Reliability Index (0-1)" },
+                                        "vci": { "type": "number", "description": "Verification Confidence Index (0-1)" },
+                                        "cq": { "type": "number", "description": "Consistency Quotient (0-1)" },
+                                        "driftScore": { "type": "number", "description": "Current Mahalanobis drift score" },
+                                        "totalTasks": { "type": "number" },
+                                        "verifiedTasks": { "type": "number" },
+                                        "successfulTasks": { "type": "number" },
+                                        "compliantTasks": { "type": "number" },
+                                        "centroidMean": {
+                                            "type": "array",
+                                            "items": { "type": "number" },
+                                            "description": "5D centroid normalized to [0,1] per dimension for SVG radar rendering"
+                                        },
+                                        "centroidCount": { "type": "number" },
+                                        "lastActiveAt": { "type": "string", "format": "date-time" }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": { "description": "Agent not found" }
+                },
+                "tags": ["Fingerprints"]
+            }
+        },
+        "/api/v1/fingerprints": {
+            "get": {
+                "operationId": "FingerprintController_listFingerprints",
+                "summary": "List agent fingerprints sorted by ARI, VCI, CQ, or drift score",
+                "parameters": [
+                    {
+                        "name": "sort",
+                        "required": false,
+                        "in": "query",
+                        "description": "Ranking dimension",
+                        "schema": { "type": "string", "enum": ["ari", "vci", "cq", "driftScore"], "default": "ari" }
+                    },
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "description": "Max results (1-100, default 50)",
+                        "schema": { "type": "number" }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated fingerprint list with centroid means"
+                    }
+                },
+                "tags": ["Fingerprints"]
+            }
+        },
+        "/api/v1/leaderboard/agents": {
+            "get": {
+                "operationId": "LeaderboardController_getAgentRankings",
+                "summary": "Get top 50 agents ranked by ARI, VCI, CQ, or composite score",
+                "parameters": [
+                    {
+                        "name": "sort",
+                        "required": false,
+                        "in": "query",
+                        "description": "Ranking dimension",
+                        "schema": { "type": "string", "enum": ["ari", "vci", "cq", "score"], "default": "ari" }
+                    },
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "description": "Max results (1-100)",
+                        "schema": { "type": "number" }
+                    }
+                ],
+                "responses": {
+                    "200": { "description": "Agent rankings with trust level and score breakdown" },
+                    "400": { "description": "Invalid sort parameter" }
+                },
+                "tags": ["Leaderboard"]
+            }
+        },
+        "/api/v1/leaderboard/agents/{agentId}/rank": {
+            "get": {
+                "operationId": "LeaderboardController_getAgentRank",
+                "summary": "Get rank and scores for a specific agent",
+                "parameters": [
+                    {
+                        "name": "agentId",
+                        "required": true,
+                        "in": "path",
+                        "description": "Agent fingerprint ID",
+                        "schema": { "type": "string" }
+                    }
+                ],
+                "responses": {
+                    "200": { "description": "Agent rank and score breakdown" },
+                    "404": { "description": "Agent not found" }
+                },
+                "tags": ["Leaderboard"]
+            }
+        },
+        "/api/v1/leaderboard/operators": {
+            "get": {
+                "operationId": "LeaderboardController_getOperatorRankings",
+                "summary": "Get top 50 operators ranked by Fleet Commander Index (FCI)",
+                "parameters": [
+                    {
+                        "name": "sort",
+                        "required": false,
+                        "in": "query",
+                        "schema": { "type": "string", "enum": ["fci", "tasks"], "default": "fci" }
+                    },
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "schema": { "type": "number" }
+                    }
+                ],
+                "responses": {
+                    "200": { "description": "Operator rankings by Fleet Commander Index" }
+                },
+                "tags": ["Leaderboard"]
+            }
+        },
+        "/api/v1/leaderboard/pioneers": {
+            "get": {
+                "operationId": "LeaderboardController_getPioneerRankings",
+                "summary": "Get top 50 operators ranked by Beta Pioneer Points",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "schema": { "type": "number" }
+                    }
+                ],
+                "responses": {
+                    "200": { "description": "Pioneer point rankings with tier breakdown" }
+                },
+                "tags": ["Leaderboard"]
+            }
+        },
+        "/api/v1/leaderboard/pioneers/events": {
+            "get": {
+                "operationId": "LeaderboardController_getPioneerEvents",
+                "summary": "Get point event history for an operator",
+                "description": "Append-only log of all Pioneer Point accrual events for a given operator, ordered by createdAt desc. Public endpoint — no auth required.",
+                "parameters": [
+                    {
+                        "name": "operatorId",
+                        "required": true,
+                        "in": "query",
+                        "description": "Operator cuid",
+                        "schema": { "type": "string" }
+                    },
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "description": "Max results (1-200, default 50)",
+                        "schema": { "type": "number" }
+                    }
+                ],
+                "responses": {
+                    "200": { "description": "List of PioneerPointEvent rows" },
+                    "400": { "description": "operatorId is required" }
+                },
+                "tags": ["Leaderboard"]
+            }
         }
     },
     "info": {

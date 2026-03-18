@@ -135,6 +135,23 @@
       ]
     },
     {
+      "group": "Fingerprints",
+      "pages": [
+        "api-reference/fingerprints/list-agent-fingerprints",
+        "api-reference/fingerprints/get-agent-fingerprint"
+      ]
+    },
+    {
+      "group": "Leaderboard",
+      "pages": [
+        "api-reference/leaderboard/get-agent-rankings",
+        "api-reference/leaderboard/get-agent-rank",
+        "api-reference/leaderboard/get-operator-rankings",
+        "api-reference/leaderboard/get-pioneer-rankings",
+        "api-reference/leaderboard/get-pioneer-events"
+      ]
+    },
+    {
       "group": "Task Pipeline",
       "pages": [
         "api-reference/tasks/list-tasks-paginated",
