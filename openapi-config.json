@@ -1,0 +1,34 @@
+{
+  "_comment": "Single source of truth for the public API surface. Changes require explicit review. IC-13: agents must re-read this file before adding routes to any controller.",
+  "denyPaths": [
+    "/metrics",
+    "/events/stream",
+    "/v1/intent/tasks/pending",
+    "/api/v1/credits/topup",
+    "/webhook/farcaster",
+    "/webhook/x402/submit",
+    "/api/v1/stripe/webhook",
+    "/api/v1/auth/github",
+    "/api/v1/auth/github/callback"
+  ],
+  "denyPathPrefixes": [
+    "/admin"
+  ],
+  "denyServers": [
+    "http://localhost:3000"
+  ],
+  "requireAuthAnnotation": {
+    "/v1/intent": "bearer",
+    "/api/v1/fingerprints": "bearer or x-api-key",
+    "/api/v1/fingerprints/{agentId}": "bearer or x-api-key",
+    "/api/v1/credits/balance/{operatorId}": "bearer",
+    "/api/v1/operator/export": "bearer",
+    "/api/v1/operator/guardrails": "bearer",
+    "/api/v1/operator/kill-switch": "bearer",
+    "/api/v1/stripe/checkout/subscription": "bearer",
+    "/api/v1/stripe/checkout/topup": "bearer",
+    "/api/v1/stripe/portal": "bearer"
+  },
+  "expectedPublicRouteCount": 36,
+  "_expectedPublicRouteCount_note": "IC-19 rename guard: if route count changes unexpectedly, validate-openapi.ts warns. Update this value intentionally when adding or removing public routes. After gateway restart with new @ApiExcludeEndpoint patches: expect ~28 (removes events/stream, webhook/farcaster, webhook/x402/submit, admin/* routes)."
+}

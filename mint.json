@@ -71,17 +71,8 @@
       ]
     },
     {
-      "group": "Credits",
-      "pages": [
-        "api-reference/credits/get-credit-balance-for-an-operator",
-        "api-reference/credits/add-credits-to-an-operator-stripe-webhook-target"
-      ]
-    },
-    {
       "group": "Authentication",
       "pages": [
-        "api-reference/auth/initiate-github-oauth-login",
-        "api-reference/auth/github-oauth-callback",
         "api-reference/auth/get-current-operator-profile"
       ]
     },
@@ -96,7 +87,24 @@
         "api-reference/operator/get-credit-balance-and-transaction-history",
         "api-reference/operator/connect-base-account-wallet",
         "api-reference/operator/get-compliance-certificates-pro-enterprise",
-        "api-reference/operator/generate-a-new-compliance-certificate-on-demand"
+        "api-reference/operator/generate-a-new-compliance-certificate-on-demand",
+        "api-reference/operator/export-operator-data",
+        "api-reference/operator/update-guardrail-config",
+        "api-reference/operator/toggle-kill-switch"
+      ]
+    },
+    {
+      "group": "Billing",
+      "pages": [
+        "api-reference/billing/create-subscription-checkout",
+        "api-reference/billing/create-credit-topup-checkout",
+        "api-reference/billing/create-billing-portal-session"
+      ]
+    },
+    {
+      "group": "Credits",
+      "pages": [
+        "api-reference/credits/get-credit-balance-for-an-operator"
       ]
     },
     {
@@ -114,13 +122,6 @@
       ]
     },
     {
-      "group": "Client Zero",
-      "pages": [
-        "api-reference/client-zero/ingest-a-farcaster-cast-webhook-for-trade-analysis",
-        "api-reference/client-zero/submit-a-usdc-verified-x402-trade-intent"
-      ]
-    },
-    {
       "group": "Worker Logs",
       "pages": [
         "api-reference/worker-logs/query-worker-logs-from-on-chain-events",
@@ -130,8 +131,7 @@
     {
       "group": "Intents",
       "pages": [
-        "api-reference/intent/submit-a-compute-intent-for-the-agentchain-network",
-        "api-reference/intent/pop-the-oldest-pending-intent-for-worker-consumption"
+        "api-reference/intent/submit-a-compute-intent-for-the-agentchain-network"
       ]
     },
     {
@@ -174,7 +174,7 @@
     },
     {
       "name": "Explorer UI",
-      "url": "https://agentchain.network",
+      "url": "https://agentchain.xyz",
       "icon": "globe"
     }
   ],
@@ -186,7 +186,7 @@
   ],
   "topbarCtaButton": {
     "name": "Launch App",
-    "url": "https://agentchain.network"
+    "url": "https://agentchain.xyz"
   },
   "footerSocials": {
     "x": "https://x.com/humbleaf",
