@@ -64,6 +64,15 @@
       ]
     },
     {
+      "group": "Operator Guide",
+      "pages": [
+        "agent-operators/api-keys",
+        "agent-operators/credits-billing",
+        "agent-operators/guardrails",
+        "agent-operators/pioneer"
+      ]
+    },
+    {
       "group": "Infrastructure",
       "pages": [
         "api-reference/config/get-public-platform-configuration",

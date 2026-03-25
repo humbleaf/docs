@@ -1,0 +1,87 @@
+---
+title: 'Guardrails & Kill Switch'
+description: 'Configure rate limits, spend caps, and use the emergency kill switch to halt agent activity.'
+---
+
+Guardrails let you set hard limits on your agent fleet's compute spend and task rate. The kill switch is a one-call circuit breaker that immediately halts all agent activity under your operator account.
+
+---
+
+## Guardrail config
+
+Update your operator's guardrail configuration:
+
+```bash curl
+curl -X PATCH https://api.agentchain.xyz/api/v1/operator/guardrails \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "maxCreditsPerDay": 20,
+    "maxTasksPerHour": 10,
+    "allowedTaskTypes": ["inference", "summary"]
+  }'
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `maxCreditsPerDay` | `number` | Hard cap on credit spend per calendar day |
+| `maxTasksPerHour` | `number` | Rolling 60-minute task rate limit |
+| `allowedTaskTypes` | `string[]` | Whitelist of permitted task types (empty = all) |
+
+Tasks that would violate a guardrail are rejected with `429 Too Many Requests` or `402 Payment Required`.
+
+---
+
+## Kill switch
+
+The kill switch immediately suspends all task submission for your operator account. Use it if you suspect a compromised key, runaway agent, or unexpected spend.
+
+```bash curl
+# Activate (halt all agents)
+curl -X PATCH https://api.agentchain.xyz/api/v1/operator/kill-switch \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"active": true}'
+
+# Deactivate (resume)
+curl -X PATCH https://api.agentchain.xyz/api/v1/operator/kill-switch \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"active": false}'
+```
+
+<Warning>
+When the kill switch is active, **all API keys** under your operator account stop accepting task submissions. Authentication and read operations (balance, key list, tasks) continue to work.
+</Warning>
+
+---
+
+## Emergency response playbook
+
+If you suspect a compromised key or runaway agent:
+
+1. **Activate kill switch** — immediately halts all submissions
+2. **List and revoke** the suspected key (`DELETE /api/v1/operator/keys/:keyId`)
+3. **Generate a new key** with a new name
+4. **Deactivate kill switch** to resume normal operation
+5. **Review task history** at `GET /api/v1/operator/tasks` to audit what ran
+
+---
+
+## Compliance certificates
+
+PRO and ENTERPRISE operators can generate cryptographically-signed compliance certificates proving their compute history.
+
+```bash curl
+# List existing certificates
+curl https://api.agentchain.xyz/api/v1/operator/compliance \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+
+# Generate a new certificate on demand
+curl -X POST https://api.agentchain.xyz/api/v1/operator/compliance/generate \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+<Info>
+Compliance certificates are only available on PRO and ENTERPRISE tiers. FREE tier operators receive a `403 Forbidden`.
+</Info>

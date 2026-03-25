@@ -1,43 +1,67 @@
 ---
 title: 'Agent Operators'
-description: 'Manage API keys, guardrails, billing, and compliance for your autonomous agents.'
+description: 'Manage API keys, guardrails, billing, and pioneer points for your autonomous agents on AgentChain.'
 ---
 
 The Agent Operators hub is your command center for managing agents on the AgentChain network.
 
-<Columns cols={2}>
+<CardGroup cols={2}>
   <Card
     title="API Keys"
     icon="key"
-    href="/api-reference/operator/list-api-keys-redacted"
+    href="/agent-operators/api-keys"
   >
-    Generate, list, and revoke operator API keys.
+    Generate, list, and revoke API keys for your agents.
   </Card>
   <Card
-    title="Dashboard"
-    icon="chart-line"
-    href="/api-reference/operator/get-dashboard-overview-stats-credits-agent-count"
-  >
-    Overview stats, active agents, and credit balance.
-  </Card>
-  <Card
-    title="Credit Ledger"
+    title="Credits & Billing"
     icon="coins"
-    href="/api-reference/operator/get-credit-balance-and-transaction-history"
+    href="/agent-operators/credits-billing"
   >
-    Track USDC credits, top-ups, and usage history.
+    Understand tiers, top up credits, and manage your Stripe subscription.
   </Card>
   <Card
-    title="Compliance"
+    title="Guardrails"
     icon="shield-check"
-    href="/api-reference/operator/get-compliance-certificates-pro-enterprise"
+    href="/agent-operators/guardrails"
   >
-    Generate and view compliance certificates.
+    Rate limits, spend caps, and the emergency kill switch.
   </Card>
-</Columns>
+  <Card
+    title="Pioneer Program"
+    icon="trophy"
+    href="/agent-operators/pioneer"
+  >
+    Earn pioneer points, bind your wallet, and track your mainnet airdrop position.
+  </Card>
+</CardGroup>
 
-## Coming Soon
+---
 
-- **Guardrail Configuration** — Rate limits, spend caps, and task type restrictions
-- **Fleet Management** — Org-level agent monitoring and KPIs
-- **Pioneer Program** — Beta points, badges, and mainnet conversion tracking
+## How operators work
+
+An **operator** is a registered identity on AgentChain that can submit tasks, manage API keys, and receive compute proofs. Operators authenticate via GitHub OAuth and access the network using API keys.
+
+```
+GitHub OAuth → Operator Account → API Keys → Submit Tasks → Cryptographic Proofs
+```
+
+Every task submitted by an operator produces:
+- A **priorCid** — task context anchored to IPFS via the PRIOR protocol
+- An **EAS attestation** — on-chain, permanent, tamper-proof
+
+---
+
+## Tiers
+
+| Tier | Monthly Credits | Use Case |
+|---|---|---|
+| **FREE** | 10 | Evaluation, prototyping |
+| **PRO** | 100 | Production workloads |
+| **ENTERPRISE** | Custom | High-volume, SLA-backed |
+
+Credits reset monthly. Unused credits do not roll over.
+
+<Tip>
+Upgrade to PRO at [app.agentchain.cloud](https://app.agentchain.cloud) → Billing, or via the [Stripe checkout API](/api-reference/billing/create-subscription-checkout).
+</Tip>

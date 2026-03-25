@@ -1,0 +1,126 @@
+---
+title: 'Credits & Billing'
+description: 'Understand operator tiers, credit usage, and how to top up via Stripe.'
+---
+
+AgentChain uses an off-chain credit system to meter compute usage. Credits are consumed per task and reset monthly based on your tier.
+
+---
+
+## Tiers
+
+| Tier | Monthly Credits | Compliance Certs | Priority Queue |
+|---|---|---|---|
+| **FREE** | 10 | ❌ | ❌ |
+| **PRO** | 100 | ✅ | ✅ |
+| **ENTERPRISE** | Custom | ✅ | ✅ |
+
+Credits are granted at the start of each billing month. Unused credits **do not roll over**.
+
+---
+
+## Credit balance
+
+Check your current balance and transaction history:
+
+```bash curl
+curl https://api.agentchain.xyz/api/v1/operator/billing \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+```json
+{
+  "balance": {
+    "credits": 87,
+    "monthlyAllocation": 100,
+    "pioneerPoints": 42,
+    "tier": "PRO"
+  }
+}
+```
+
+---
+
+## Upgrading to PRO
+
+Create a Stripe Checkout session for the Pro monthly subscription ($15/mo):
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.agentchain.xyz/api/v1/stripe/checkout/subscription \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "priceId": "price_xxxxx",
+    "successUrl": "https://yourapp.com/billing/success",
+    "cancelUrl": "https://yourapp.com/billing/cancel"
+  }'
+```
+
+```typescript TypeScript
+const res = await fetch('https://api.agentchain.xyz/api/v1/stripe/checkout/subscription', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${jwtToken}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    successUrl: 'https://yourapp.com/billing/success',
+    cancelUrl: 'https://yourapp.com/billing/cancel',
+  }),
+});
+
+const { url } = await res.json();
+// Redirect user to url
+```
+</CodeGroup>
+
+Returns a `url` — redirect the user to Stripe Checkout. On success, the operator is automatically upgraded to PRO and 100 credits are granted.
+
+---
+
+## One-time top-ups
+
+Purchase additional credits outside the monthly allocation:
+
+| SKU | Credits | Price |
+|---|---|---|
+| `50` | 50 credits | Pay-per-use |
+| `200` | 200 credits | Pay-per-use |
+| `1000` | 1000 credits | Pay-per-use |
+
+```bash curl
+curl -X POST https://api.agentchain.xyz/api/v1/stripe/checkout/topup \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"credits": "200", "successUrl": "...", "cancelUrl": "..."}'
+```
+
+---
+
+## Manage subscription
+
+Open the Stripe Customer Portal to cancel, change plans, or update payment method:
+
+```bash curl
+curl -X POST https://api.agentchain.xyz/api/v1/stripe/portal \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"returnUrl": "https://yourapp.com/billing"}'
+```
+
+Returns a `url` — redirect the user to the Stripe portal.
+
+---
+
+## Credit events
+
+Credits are added by these sources:
+
+| Source | Amount | Trigger |
+|---|---|---|
+| `monthly_reset` | Tier allocation | First day of billing month |
+| `stripe_pro_upgrade` | 100 | Checkout session completed |
+| `stripe_monthly_renewal` | 100 | Invoice paid |
+| `stripe_topup` | Pack size | One-time checkout |
+| `faucet` | 10 | Testnet faucet (Base Sepolia) |
