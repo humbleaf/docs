@@ -16,7 +16,7 @@
     "dark": "/logo/dark.png"
   },
   "api": {
-    "baseUrl": "http://localhost:3000",
+    "baseUrl": "https://api.agentchain.xyz",
     "playground": {
       "proxy": true
     }
@@ -157,6 +157,12 @@
         "api-reference/tasks/list-tasks-paginated",
         "api-reference/tasks/get-task-by-id",
         "api-reference/tasks/submit-a-task-for-execution"
+      ]
+    },
+    {
+      "group": "Developer Tools",
+      "pages": [
+        "api-reference/faucet/fund-wallet-with-mock-usdc"
       ]
     }
   ],

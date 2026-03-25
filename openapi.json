@@ -1198,6 +1198,108 @@
                 },
                 "tags": ["Leaderboard"]
             }
+        },
+        "/api/v1/faucet/usdc": {
+            "post": {
+                "operationId": "FaucetController_drip",
+                "summary": "Fund wallet with MockUSDC",
+                "description": "Mints MockUSDC to the developer's wallet AND to the X402_PAYMENT_ADDRESS on their behalf. The paymentAddressTxHash in the response is what the developer passes as the X-402-Payment header for their first task submission. Rate limited to 1 request per wallet per 24 hours.",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": ["wallet"],
+                                "properties": {
+                                    "wallet": {
+                                        "type": "string",
+                                        "description": "Developer EOA wallet address to receive MockUSDC",
+                                        "example": "0xYourWalletAddress"
+                                    },
+                                    "amount": {
+                                        "type": "number",
+                                        "description": "USDC amount to mint (default: 10, max: 100)",
+                                        "example": 10
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "MockUSDC minted — use paymentAddressTxHash as your X-402-Payment header",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "devWalletTxHash": {
+                                            "type": "string",
+                                            "description": "Transaction hash — MockUSDC minted to developer wallet"
+                                        },
+                                        "paymentAddressTxHash": {
+                                            "type": "string",
+                                            "description": "Transaction hash — MockUSDC minted to X402_PAYMENT_ADDRESS. Use this as the txHash in your X-402-Payment header."
+                                        },
+                                        "usdcMinted": {
+                                            "type": "number",
+                                            "description": "USDC amount minted"
+                                        },
+                                        "creditsAdded": {
+                                            "type": "number",
+                                            "description": "Off-chain credits added to your account"
+                                        },
+                                        "cooldownUntil": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "description": "When you can call the faucet again for this wallet"
+                                        },
+                                        "paymentAddress": {
+                                            "type": "string",
+                                            "description": "The X402_PAYMENT_ADDRESS that was funded"
+                                        },
+                                        "instructions": {
+                                            "type": "string",
+                                            "description": "Pre-built X-402-Payment header value — copy and use directly"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid wallet address"
+                    },
+                    "401": {
+                        "description": "Missing or invalid API key"
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded — 1 request per wallet per 24h",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": { "type": "string" },
+                                        "cooldownUntil": { "type": "string", "format": "date-time" },
+                                        "retryAfterSeconds": { "type": "number" }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Faucet not configured on this instance"
+                    }
+                },
+                "tags": ["Developer Tools"],
+                "security": [
+                    { "ApiKey": [] }
+                ]
+            }
         }
     },
     "info": {

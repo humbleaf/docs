@@ -1,46 +1,253 @@
 ---
 title: 'Quickstart'
-description: 'Deploy a decentralized AI compute task in under 60 seconds.'
+description: 'Submit your first verifiable AI compute task on Base Sepolia in under 5 minutes.'
 ---
 
-AgentChain abstracts the complexity of EVM nonces, ABI signatures, and cryptographic anchoring so you can focus on building autonomous agents.
+AgentChain routes AI tasks through a verifiable compute network on Base Sepolia. Every task produces a cryptographic proof anchored to IPFS and attested on-chain via EAS.
 
-## Installation
+This quickstart uses the **REST API directly** — no SDK required.
 
-Install the SDK via your preferred package manager. It is universally compatible with Node.js, Next.js, and NestJS environments.
+---
+
+## Step 1 — Get an API Key
+
+Sign in with GitHub at [AgentChain Ops](https://ops.agentchain.xyz) and generate an API key from the **API Keys** tab.
+
+```
+Your API key: ac_live_xxxxxxxxxxxxxxxxxxxx
+```
+
+<Info>
+**Testnet only.** All activity runs on Base Sepolia (chain ID 84532). No real funds are involved.
+</Info>
+
+---
+
+## Step 2 — Fund Your Wallet
+
+Call the faucet to mint MockUSDC to your wallet and pre-fund the payment gate. You need both funded before submitting a task.
 
 <CodeGroup>
-```bash npm
-npm install @agentchain/sdk
+```bash curl
+curl -X POST https://api.agentchain.xyz/api/v1/faucet/usdc \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"wallet": "0xYOUR_WALLET_ADDRESS", "amount": 10}'
 ```
 
-```bash pnpm
-pnpm add @agentchain/sdk
+```typescript TypeScript
+const res = await fetch('https://api.agentchain.xyz/api/v1/faucet/usdc', {
+  method: 'POST',
+  headers: {
+    'x-api-key': process.env.AGENTCHAIN_API_KEY!,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ wallet: '0xYOUR_WALLET_ADDRESS', amount: 10 }),
+});
+
+const { paymentAddressTxHash, devWalletTxHash, creditsAdded } = await res.json();
 ```
 
-```bash yarn
-yarn add @agentchain/sdk
+```python Python
+import requests
+
+resp = requests.post(
+  'https://api.agentchain.xyz/api/v1/faucet/usdc',
+  headers={'x-api-key': 'YOUR_API_KEY'},
+  json={'wallet': '0xYOUR_WALLET_ADDRESS', 'amount': 10},
+)
+data = resp.json()
+payment_tx_hash = data['paymentAddressTxHash']
 ```
 </CodeGroup>
 
-## The 3-Line Deployment
+The response includes two tx hashes:
 
-Once installed, initialize the client and drop your task onto the decentralized compute network.
-
-```typescript
-import { AgentChain } from '@agentchain/sdk';
-
-// 1. Initialize the client (Base Sepolia automatically selected)
-const agent = new AgentChain(process.env.PRIVATE_KEY);
-
-// 2. Deploy your prompt to the decentralized network
-const taskId = await agent.deployTask("Analyze the sentiment of this prompt.");
-
-// 3. Listen for the verifiable result
-const result = await agent.waitForResult(taskId);
-console.log(result.output);
-```
+| Field | What it is |
+|---|---|
+| `devWalletTxHash` | MockUSDC minted to your wallet |
+| `paymentAddressTxHash` | MockUSDC minted to the payment gate on your behalf |
+| `creditsAdded` | Off-chain credits loaded (10) |
+| `instructions` | Pre-built `X-402-Payment` header value — copy this |
 
 <Warning>
-**Testnet Notice:** The SDK currently defaults to the Base Sepolia testnet. It will automatically mint mock USDC to your wallet to pay the compute fees if your balance is zero.
+**Rate limit:** 1 faucet call per wallet per 24 hours (100 USDC max). The `cooldownUntil` field tells you when you can call again.
 </Warning>
+
+---
+
+## Step 3 — Submit a Compute Task
+
+Pass the `paymentAddressTxHash` from Step 2 as the `X-402-Payment` header (Base64-encoded JSON). The faucet response includes a pre-built header value in `instructions` — copy it directly.
+
+<CodeGroup>
+```bash curl
+# Build the payment header
+PAYMENT_HEADER=$(echo -n '{
+  "txHash": "0xYOUR_PAYMENT_TX_HASH",
+  "payer": "0xYOUR_WALLET_ADDRESS",
+  "amount": "10000000",
+  "chainId": 84532
+}' | base64)
+
+curl -X POST https://api.agentchain.xyz/api/v1/tasks/submit \
+  -H "x-api-key: YOUR_API_KEY" \
+  -H "X-402-Payment: $PAYMENT_HEADER" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Summarize the state of the AI agent economy in 3 sentences.",
+    "model": "gemma3:4b"
+  }'
+```
+
+```typescript TypeScript
+const paymentHeader = Buffer.from(JSON.stringify({
+  txHash: paymentAddressTxHash,   // from Step 2
+  payer: '0xYOUR_WALLET_ADDRESS',
+  amount: '10000000',             // 10 USDC (6 decimals)
+  chainId: 84532,
+})).toString('base64');
+
+const task = await fetch('https://api.agentchain.xyz/api/v1/tasks/submit', {
+  method: 'POST',
+  headers: {
+    'x-api-key': process.env.AGENTCHAIN_API_KEY!,
+    'X-402-Payment': paymentHeader,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    prompt: 'Summarize the state of the AI agent economy in 3 sentences.',
+    model: 'gemma3:4b',
+  }),
+});
+
+const { taskId, status } = await task.json();
+```
+
+```python Python
+import base64, json, requests
+
+payment_header = base64.b64encode(json.dumps({
+  'txHash': payment_tx_hash,
+  'payer': '0xYOUR_WALLET_ADDRESS',
+  'amount': '10000000',
+  'chainId': 84532,
+}).encode()).decode()
+
+resp = requests.post(
+  'https://api.agentchain.xyz/api/v1/tasks/submit',
+  headers={
+    'x-api-key': 'YOUR_API_KEY',
+    'X-402-Payment': payment_header,
+  },
+  json={
+    'prompt': 'Summarize the state of the AI agent economy in 3 sentences.',
+    'model': 'gemma3:4b',
+  },
+)
+task_id = resp.json()['taskId']
+```
+</CodeGroup>
+
+**Successful response:**
+
+```json
+{
+  "taskId": "task_abc123",
+  "status": "queued",
+  "estimatedCompletionMs": 8000
+}
+```
+
+---
+
+## Step 4 — Retrieve the Result
+
+Poll or fetch the task once it's completed. Each result includes an IPFS proof CID and an on-chain EAS attestation.
+
+<CodeGroup>
+```bash curl
+curl https://api.agentchain.xyz/api/v1/tasks/task_abc123 \
+  -H "x-api-key: YOUR_API_KEY"
+```
+
+```typescript TypeScript
+const result = await fetch(`https://api.agentchain.xyz/api/v1/tasks/${taskId}`, {
+  headers: { 'x-api-key': process.env.AGENTCHAIN_API_KEY! },
+});
+
+const { status, output, priorCid, easAttestationUid } = await result.json();
+```
+</CodeGroup>
+
+**Completed response:**
+
+```json
+{
+  "taskId": "task_abc123",
+  "status": "completed",
+  "output": "The AI agent economy is...",
+  "priorCid": "bafybeif...",
+  "easAttestationUid": "0x...",
+  "proofUrl": "https://easscan.org/attestation/view/0x..."
+}
+```
+
+| Field | What it proves |
+|---|---|
+| `priorCid` | Task context and result anchored to IPFS via the PRIOR protocol |
+| `easAttestationUid` | On-chain EAS attestation — permanent, verifiable, tamper-proof |
+| `proofUrl` | Public link to view the attestation on EAS Scan |
+
+---
+
+## What just happened?
+
+```
+Your wallet  →  faucet mints USDC  →  payment gate funded
+     ↓
+POST /tasks/submit + X-402-Payment header
+     ↓
+x402 interceptor verifies on-chain transfer  →  task queued
+     ↓
+BullMQ worker picks up task  →  Ollama runs inference
+     ↓
+Result  →  pinned to IPFS (PRIOR)  →  EAS attestation on Base Sepolia
+```
+
+Every step is auditable. The `priorCid` and `easAttestationUid` are your permanent proof of compute.
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="API Reference"
+    icon="code"
+    href="/api-reference/tasks/submit-a-task-for-execution"
+  >
+    Full task submission schema, models, and response types.
+  </Card>
+  <Card
+    title="Agent Operators"
+    icon="key"
+    href="/agent-operators/overview"
+  >
+    Manage API keys, credits, and agent fleet.
+  </Card>
+  <Card
+    title="PRIOR Protocol"
+    icon="database"
+    href="/prior/overview"
+  >
+    How your task context is anchored to IPFS.
+  </Card>
+  <Card
+    title="Explorer"
+    icon="magnifying-glass"
+    href="https://agentchain.network"
+  >
+    View live tasks, proofs, and agent leaderboards.
+  </Card>
+</CardGroup>
