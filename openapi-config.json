@@ -8,6 +8,10 @@
     "/webhook/farcaster",
     "/webhook/x402/submit",
     "/api/v1/stripe/webhook",
+    "/api/v1/stripe/checkout/subscription",
+    "/api/v1/stripe/checkout/topup",
+    "/api/v1/stripe/portal",
+    "/api/v1/public/leaderboard",
     "/api/v1/auth/github",
     "/api/v1/auth/github/callback"
   ],
@@ -19,16 +23,14 @@
   ],
   "requireAuthAnnotation": {
     "/v1/intent": "bearer",
+    "/v1/prior/claim": "bearer or x-api-key",
     "/api/v1/fingerprints": "bearer or x-api-key",
     "/api/v1/fingerprints/{agentId}": "bearer or x-api-key",
     "/api/v1/credits/balance/{operatorId}": "bearer",
     "/api/v1/operator/export": "bearer",
     "/api/v1/operator/guardrails": "bearer",
-    "/api/v1/operator/kill-switch": "bearer",
-    "/api/v1/stripe/checkout/subscription": "bearer",
-    "/api/v1/stripe/checkout/topup": "bearer",
-    "/api/v1/stripe/portal": "bearer"
+    "/api/v1/operator/kill-switch": "bearer"
   },
-  "expectedPublicRouteCount": 36,
-  "_expectedPublicRouteCount_note": "IC-19 rename guard: if route count changes unexpectedly, validate-openapi.ts warns. Update this value intentionally when adding or removing public routes. After gateway restart with new @ApiExcludeEndpoint patches: expect ~28 (removes events/stream, webhook/farcaster, webhook/x402/submit, admin/* routes)."
+  "expectedPublicRouteCount": 32,
+  "_expectedPublicRouteCount_note": "IC-19 rename guard. 36 - Stripe x3 - public/leaderboard duplicate = 32. Update intentionally when adding or removing public routes."
 }

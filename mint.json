@@ -103,24 +103,9 @@
       ]
     },
     {
-      "group": "Billing",
-      "pages": [
-        "api-reference/billing/create-subscription-checkout",
-        "api-reference/billing/create-credit-topup-checkout",
-        "api-reference/billing/create-billing-portal-session"
-      ]
-    },
-    {
-      "group": "Credits",
-      "pages": [
-        "api-reference/credits/get-credit-balance-for-an-operator"
-      ]
-    },
-    {
       "group": "Public",
       "pages": [
         "api-reference/public/platform-wide-stats-total-tasks-agents-operators",
-        "api-reference/public/agent-leaderboard-top-agents-by-composite-score",
         "api-reference/public/view-a-proof-receipt-by-ipfs-cid"
       ]
     },

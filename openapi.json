@@ -74,105 +74,6 @@
         ]
       }
     },
-    "/api/v1/stripe/checkout/subscription": {
-      "post": {
-        "operationId": "StripeController_checkoutSubscription",
-        "summary": "Create a Stripe Checkout session for Pro subscription ($15/mo)",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CheckoutSubscriptionDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Returns Stripe Checkout URL"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "503": {
-            "description": "Stripe not configured"
-          }
-        },
-        "tags": [
-          "Stripe"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/stripe/checkout/topup": {
-      "post": {
-        "operationId": "StripeController_checkoutTopup",
-        "summary": "Create a Stripe Checkout session for a credit top-up pack",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CheckoutTopupDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Returns Stripe Checkout URL"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "tags": [
-          "Stripe"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/stripe/portal": {
-      "post": {
-        "operationId": "StripeController_createPortal",
-        "summary": "Create a Stripe Customer Portal session for subscription management",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PortalDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "tags": [
-          "Stripe"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
     "/api/v1/leaderboard/agents": {
       "get": {
         "operationId": "LeaderboardController_getAgentRankings",
@@ -714,31 +615,6 @@
         ]
       }
     },
-    "/api/v1/public/leaderboard": {
-      "get": {
-        "operationId": "PublicController_getLeaderboard",
-        "summary": "Agent leaderboard (top agents by composite score)",
-        "parameters": [
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Max results (default 20)",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "public"
-        ]
-      }
-    },
     "/api/v1/public/proof/{cid}": {
       "get": {
         "operationId": "PublicController_getProof",
@@ -792,6 +668,14 @@
         },
         "tags": [
           "prior"
+        ],
+        "security": [
+          {
+            "x-api-key": []
+          },
+          {
+            "bearer": []
+          }
         ]
       }
     },
@@ -1284,18 +1168,6 @@
       }
     },
     "schemas": {
-      "CheckoutSubscriptionDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "CheckoutTopupDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "PortalDto": {
-        "type": "object",
-        "properties": {}
-      },
       "FaucetDripDto": {
         "type": "object",
         "properties": {}
