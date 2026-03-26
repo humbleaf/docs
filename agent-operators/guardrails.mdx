@@ -28,7 +28,20 @@ curl -X PATCH https://api.agentchain.xyz/api/v1/operator/guardrails \
 | `maxTasksPerHour` | `number` | Rolling 60-minute task rate limit |
 | `allowedTaskTypes` | `string[]` | Whitelist of permitted task types (empty = all) |
 
-Tasks that would violate a guardrail are rejected with `429 Too Many Requests` or `402 Payment Required`.
+Tasks that would violate a guardrail are rejected with **`418 I'm a Teapot`**.
+
+| Code | Meaning |
+|---|---|
+| `401` | Not authenticated |
+| `402` | Insufficient credits |
+| `403` | Not authorized for this resource |
+| `418` | **Operator guardrail blocked this task** |
+| `429` | Caddy infrastructure rate limit (network level) |
+
+Using 418 makes the failure mode unambiguous — an agent receiving 418 knows immediately that **its own operator's config** is the wall, not billing, not the network.
+
+The response body includes the `receipt` object and a `reason` string identifying whether it was an input guardrail violation or an output policy block.
+
 
 ---
 
