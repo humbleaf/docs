@@ -38,6 +38,10 @@
     {
       "name": "Agent Operators",
       "url": "agent-operators"
+    },
+    {
+      "name": "Legal",
+      "url": "legal"
     }
   ],
   "navigation": [
@@ -157,6 +161,13 @@
       "group": "Developer Tools",
       "pages": [
         "api-reference/faucet/fund-wallet-with-mock-usdc"
+      ]
+    },
+    {
+      "group": "Legal",
+      "pages": [
+        "legal/terms-of-service",
+        "legal/privacy-policy"
       ]
     }
   ],
