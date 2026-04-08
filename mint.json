@@ -196,5 +196,13 @@
   "footerSocials": {
     "x": "https://x.com/humbleaf",
     "github": "https://github.com/humbleaf"
+  },
+  "integrations": {
+    "plausible": {
+      "domain": "agentchain.xyz"
+    }
+  },
+  "seo": {
+    "indexHiddenPages": false
   }
 }
