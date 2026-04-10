@@ -1,9 +1,9 @@
 ---
 title: "AgentChain Documentation"
-description: "Verifiable AI execution for the EVM. Submit tasks, anchor proofs, and build autonomous agents — all on Base."
+description: "The trust and settlement layer for autonomous agent actions. Verify, attest, and settle on Base."
 ---
 
-AgentChain is a decentralized compute protocol that makes AI inference verifiable on-chain. Every task produces a cryptographic proof anchored to IPFS and the EVM — no blind trust required.
+AgentChain is the trust and settlement layer for autonomous actions on the EVM. Every agent action — API calls, token swaps, database mutations — produces a deterministic verification receipt anchored on-chain via [EAS](https://attest.org) and pinned to IPFS. No blind trust required.
 
 <Columns cols={2}>
   <Card
@@ -11,34 +11,60 @@ AgentChain is a decentralized compute protocol that makes AI inference verifiabl
     icon="rocket"
     href="/agentchain/quickstart"
   >
-    Deploy a decentralized AI compute task in under 60 seconds.
+    Submit your first verifiable task in under 5 minutes.
   </Card>
   <Card
     title="Architecture"
     icon="sitemap"
     href="/agentchain/architecture"
   >
-    Understand the dual-token economy, task pipeline, and dispute resolution.
+    How actions flow from policy → execution → verification → settlement.
+  </Card>
+  <Card
+    title="Action Verification"
+    icon="shield-check"
+    href="/agentchain/action-verification"
+  >
+    How AgentChain verifies EVM state transitions deterministically.
   </Card>
   <Card
     title="API Reference"
     icon="terminal"
     href="/api-reference/tasks/submit-a-task-for-execution"
   >
-    31 endpoints for operators, workers, and public consumers.
+    50 endpoints for operators, agents, and public consumers.
+  </Card>
+</Columns>
+
+## Core Concepts
+
+<Columns cols={3}>
+  <Card
+    title="Policies"
+    icon="scroll"
+    href="/agentchain/policies"
+  >
+    On-chain rules that constrain what agents can do.
   </Card>
   <Card
-    title="PRIOR Protocol"
-    icon="shield-halved"
-    href="/prior/overview"
+    title="Attestations"
+    icon="certificate"
+    href="/agentchain/attestations"
   >
-    Cryptographic anchoring for context payloads and inference proofs.
+    Permanent EAS receipts for every verified action.
+  </Card>
+  <Card
+    title="Disputes"
+    icon="gavel"
+    href="/agentchain/disputes"
+  >
+    Interactive bisection protocol for challenging invalid results.
   </Card>
 </Columns>
 
 ## For Operators
 
-Submit tasks, manage API keys, track credits, and view compliance certificates through the Operator dashboard API.
+Submit tasks, manage API keys, track credits, and view verification receipts through the Operator API.
 
 <Columns cols={3}>
   <Card
@@ -46,7 +72,7 @@ Submit tasks, manage API keys, track credits, and view compliance certificates t
     icon="paper-plane"
     href="/api-reference/tasks/submit-a-task-for-execution"
   >
-    Push a prompt to the decentralized worker fleet.
+    Submit an action or inference task for verification.
   </Card>
   <Card
     title="Manage API Keys"
@@ -56,23 +82,29 @@ Submit tasks, manage API keys, track credits, and view compliance certificates t
     Generate, list, and revoke operator API keys.
   </Card>
   <Card
-    title="Credit Ledger"
-    icon="coins"
-    href="/api-reference/operator/get-credit-balance-and-transaction-history"
+    title="View Attestations"
+    icon="magnifying-glass"
+    href="/agentchain/attestations"
   >
-    Track USDC credits and top-up history.
+    Look up EAS verification receipts by task ID or attestation UID.
   </Card>
 </Columns>
 
-## For Node Operators
+## Infrastructure
 
-Run a GPU worker node and earn USDC by executing AI inference tasks on the AgentChain network.
-
-<Card
-  title="Node Operator Guide"
-  icon="server"
-  href="/agentchain/node-operators"
-  horizontal
->
-  Hardware requirements, staking, and worker CLI setup.
-</Card>
+<Columns cols={2}>
+  <Card
+    title="PRIOR Protocol"
+    icon="database"
+    href="/prior/overview"
+  >
+    Cryptographic anchoring for task context and verification proofs on IPFS.
+  </Card>
+  <Card
+    title="Governance"
+    icon="landmark"
+    href="/agentchain/governance"
+  >
+    How AgentChainHelm manages upgradeable proxy contracts.
+  </Card>
+</Columns>

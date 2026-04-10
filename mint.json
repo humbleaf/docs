@@ -46,19 +46,29 @@
   ],
   "navigation": [
     {
-      "group": "Getting started",
+      "group": "Getting Started",
       "pages": [
         "agentchain/quickstart",
-        "agentchain/architecture",
-        "agentchain/node-operators",
-        "agentchain/sdk"
+        "agentchain/architecture"
       ]
     },
     {
       "group": "Core Protocol",
       "pages": [
+        "agentchain/action-verification",
+        "agentchain/policies",
+        "agentchain/attestations",
+        "agentchain/disputes",
+        "agentchain/governance"
+      ]
+    },
+    {
+      "group": "Infrastructure",
+      "pages": [
         "prior/overview",
-        "prior/anchoring"
+        "prior/anchoring",
+        "agentchain/node-operators",
+        "agentchain/sdk"
       ]
     },
     {
@@ -155,6 +165,21 @@
         "api-reference/tasks/list-tasks-paginated",
         "api-reference/tasks/get-task-by-id",
         "api-reference/tasks/submit-a-task-for-execution"
+      ]
+    },
+    {
+      "group": "Attestations",
+      "pages": [
+        "api-reference/attestations/get-attestations-by-task-id",
+        "api-reference/attestations/get-attestation-by-uid"
+      ]
+    },
+    {
+      "group": "Agents",
+      "pages": [
+        "api-reference/agents/register-an-agent",
+        "api-reference/agents/list-agents",
+        "api-reference/agents/get-agent-by-id"
       ]
     },
     {

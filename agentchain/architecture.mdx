@@ -1,8 +1,184 @@
 ---
 title: 'Architecture'
-description: 'Coming soon.'
+description: 'How agent actions flow from policy registration to on-chain settlement.'
 ---
 
-## Architecture
+AgentChain is a verification and settlement protocol for autonomous agent actions. It answers one question: **did the agent do what it claimed?**
 
-Contents coming soon.
+---
+
+## The Trust Pipeline
+
+Every agent action moves through five stages:
+
+```
+┌─────────┐    ┌───────────┐    ┌──────────┐    ┌─────────────┐    ┌────────────┐
+│ POLICY  │ →  │ EXECUTION │ →  │ VERIFY   │ →  │ ATTESTATION │ →  │ SETTLEMENT │
+│ Register│    │ Perform   │    │ Replay   │    │ EAS stamp   │    │ On-chain   │
+│ rules   │    │ action    │    │ + score  │    │ (permanent) │    │ anchor     │
+└─────────┘    └───────────┘    └──────────┘    └─────────────┘    └────────────┘
+```
+
+| Stage | What Happens | Where |
+|---|---|---|
+| **Policy** | Agent owner registers allowed targets, selectors, and constraints | `AgentPolicy.sol` (Base Sepolia) |
+| **Execution** | Agent performs the action (API call, token swap, state mutation) | Worker node (Rust CLI / NestJS) |
+| **Verification** | Protocol replays the state transition or scores the output | `ActionVerifier.sol` + `VerificationProcessor` |
+| **Attestation** | Permanent EAS attestation minted with verification result | EAS predeploy (`0x4200...0021`) |
+| **Settlement** | Result anchored on-chain with task ID mapping | `TaskMarket.sol` (Base Sepolia) |
+
+---
+
+## Contract Architecture
+
+AgentChain is built on **UUPS upgradeable proxies** governed by a single governance primitive.
+
+```
+AgentChainHelm V2
+├── owns → AgentPolicy (UUPS proxy)
+├── owns → ActionVerifier (UUPS proxy)  ← reads policies from AgentPolicy
+├── owns → BisectionCourtV3 (UUPS proxy)
+│
+TaskMarket (standalone)
+WatchtowerRegistry (standalone)
+ShadowVault (standalone)
+EAS (Base L2 predeploy)
+```
+
+### Contracts
+
+| Contract | Purpose | Upgradeable |
+|---|---|---|
+| **AgentChainHelm** | Governance — 48h timelock upgrades + emergency bypass | No (owns the proxies) |
+| **AgentPolicy** | On-chain policy registry for agent permissions | Yes (UUPS) |
+| **ActionVerifier** | Deterministic EVM state replay + policy compliance check | Yes (UUPS) |
+| **BisectionCourtV3** | Interactive dispute resolution (optimistic fraud proofs) | Yes (UUPS) |
+| **TaskMarket** | Task submission, verification anchoring, CUID2→uint256 mapping | No |
+| **WatchtowerRegistry** | Permissionless staking for dispute watchers | No |
+| **ShadowVault** | Over-collateralization vault for task bonds | No |
+
+### Governance
+
+All proxy upgrades go through `AgentChainHelm`:
+
+| Path | Who | Delay | Use Case |
+|---|---|---|---|
+| `executeUpgrade()` | StarfleetCommand (multi-sig) | 48 hours | Standard upgrades, feature additions |
+| `emergencyUpgrade()` | ChiefAdmiral (single key) | None | CVE-grade security patches |
+
+---
+
+## Off-Chain Architecture
+
+The NestJS gateway and Rust worker handle task routing, compute, and verification.
+
+```
+                   ┌─────────────────────────┐
+                   │   Client / Agent SDK    │
+                   │ POST /api/v1/tasks/submit│
+                   └────────┬────────────────┘
+                            │ X-402 Payment + Bearer JWT
+                            ▼
+                   ┌─────────────────────────┐
+                   │   NestJS Gateway        │
+                   │                         │
+                   │ ┌─ X-402 Interceptor    │ ← Validates on-chain USDC transfer
+                   │ ├─ Auth Guard           │ ← Dynamic.xyz JWT (RS256)
+                   │ ├─ Guardrail Service    │ ← Input/output moderation
+                   │ ├─ Credit Ledger        │ ← Debit operator credits
+                   │ ├─ Compute Provider     │ ← Routes to inference or EVM replay
+                   │ ├─ PRIOR (Pinata/IPFS)  │ ← Pin context + result
+                   │ └─ Verification Queue   │ ← BullMQ async enqueue
+                   └────────┬────────────────┘
+                            │
+                            ▼
+                   ┌─────────────────────────┐
+                   │ Verification Processor  │
+                   │                         │
+                   │ ┌─ Canonical Match      │ ← Deterministic short-circuit
+                   │ ├─ Oracle Verification  │ ← Groq llama-3.3-70b scoring
+                   │ ├─ On-chain Anchor      │ ← TaskMarket.submitVerification()
+                   │ ├─ EAS Attestation      │ ← Omni-Stamp (permanent)
+                   │ └─ Dispute Bridge       │ ← ActionVerifier.dryRunProof()
+                   └─────────────────────────┘
+```
+
+### Split-Brain Bootstrap
+
+The gateway runs in two modes controlled by `NODE_ROLE`:
+
+| Mode | What Runs |
+|---|---|
+| `gateway` | HTTP API, auth, task submission, credit management |
+| `worker` | Verification processor, on-chain anchoring, EAS attestation, dispute resolution |
+
+---
+
+## Verification Model
+
+AgentChain supports two verification paths:
+
+### Path 1: Semantic Verification (Live)
+
+For inference tasks. A second LLM scores the output for correctness:
+
+1. Task result sent to Groq verification oracle
+2. Oracle returns confidence score (0.0–1.0)
+3. Score ≥ threshold → `VERIFIED`
+4. Score < threshold → `FAILED` → dispute bridge activated
+5. EAS attestation minted regardless of outcome
+
+### Path 2: Deterministic EVM Replay (Contracts Ready)
+
+For EVM actions (token swaps, contract calls). The protocol replays the state transition:
+
+1. Agent submits `EVMActionPayload` with pre-state root, transactions, and claimed effect hash
+2. `ActionVerifier.verifyAction()` replays the transactions against the pre-state
+3. `stateMatch`: Does the computed effect hash match the claimed hash? (binary yes/no)
+4. `policyCompliant`: Are all targets and selectors in the agent's registered policy?
+5. Result attested on EAS with `VERIFICATION` schema
+
+<Info>
+**Deterministic verification is mathematically provable.** Given the same pre-state and calldata, the EVM always produces the same post-state. This is a binary proof, not a confidence score.
+</Info>
+
+---
+
+## Payment Model (X-402)
+
+AgentChain uses the [X-402 payment protocol](https://www.x402.org/) for task payment:
+
+1. Operator funds their wallet with USDC (MockUSDC on Sepolia)
+2. Operator includes `X-402-Payment` header with proof of on-chain transfer
+3. Gateway verifies the transfer on-chain (replay-protected via Redis)
+4. Credits debited from operator's ledger
+5. Task executed and verified
+
+**Cost per task on Base Sepolia:** ~$0.005 (gas for anchor + attestation)
+
+---
+
+## Data Availability
+
+Every task produces three persistent artifacts:
+
+| Artifact | Storage | Lifetime |
+|---|---|---|
+| **IPFS CID** | Pinata (PRIOR protocol) | Permanent (as long as pinned) |
+| **EAS Attestation** | Base L2 (EAS predeploy) | Permanent (non-revocable) |
+| **On-chain Anchor** | TaskMarket contract | Permanent (immutable calldata) |
+
+---
+
+## Network Topology
+
+| Component | Technology | Deployment |
+|---|---|---|
+| Gateway | NestJS + SWC | VPS / Cloud |
+| Worker | Rust CLI (alloy + tokio) | VPS / Bare metal |
+| Database | PostgreSQL (Prisma v7) | Docker / Cloud SQL |
+| Queue | Redis + BullMQ | Docker / ElastiCache |
+| Contracts | Solidity 0.8.24 (Foundry) | Base Sepolia → Base Mainnet |
+| IPFS | Pinata | Managed SaaS |
+| Auth | Dynamic.xyz | Managed SaaS |
+| Monitoring | Grafana (Loki + Tempo + Prom) | Grafana Cloud |

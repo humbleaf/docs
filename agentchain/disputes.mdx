@@ -1,0 +1,112 @@
+---
+title: 'Disputes'
+description: 'Interactive bisection protocol for challenging invalid verification results.'
+---
+
+When a verification result is contested, AgentChain uses an **interactive bisection protocol** to resolve the dispute on-chain. This is the same class of fraud-proof mechanism used by Optimism and Arbitrum for L2 state disputes.
+
+---
+
+## When Can a Dispute Be Opened?
+
+A dispute is opened when:
+1. The `VerificationProcessor` marks a task as `FAILED`
+2. The `DisputeBridge` pre-flight confirms the failure via `ActionVerifier.dryRunProof()`
+3. A challenger bonds **1 ETH** to `BisectionCourtV3.openDispute()`
+
+<Warning>
+**Disputes are expensive.** The 1 ETH bond is forfeited if you lose. Only open a dispute if you have strong evidence that the verification result is incorrect.
+</Warning>
+
+---
+
+## How Bisection Works
+
+The dispute narrows down to the exact step where the two parties disagree:
+
+```
+Round 1:  Challenger claims state diverges between steps 0-1024
+Round 2:  Narrow to steps 512-1024
+Round 3:  Narrow to steps 768-1024
+...
+Round 10: Narrow to step 997-998 (single step)
+Final:    One-step proof — ActionVerifier replays step 997→998
+          and determines who is correct
+```
+
+### The Protocol
+
+| Step | What Happens | Who Acts |
+|---|---|---|
+| 1 | Challenger calls `openDispute(taskId, stateRootClaim)` with 1 ETH bond | Challenger |
+| 2 | Defender is notified and must respond within the timeout | Defender |
+| 3-10 | Both parties reveal intermediate state roots via `selectStep()` | Both |
+| 11 | One-step proof: `resolve()` replays the single divergent step | Contract |
+| 12 | Winner receives 0.9 ETH, treasury receives 0.1 ETH | Contract |
+
+### Timeout
+
+If either party fails to respond within the round timeout, they **forfeit by default**. This prevents griefing by going silent.
+
+---
+
+## Dispute Resolution Outcomes
+
+| Outcome | Bond | Meaning |
+|---|---|---|
+| Challenger wins | Challenger gets 0.9 ETH, treasury gets 0.1 ETH | The original verification was wrong |
+| Defender wins | Defender gets 0.9 ETH, treasury gets 0.1 ETH | The challenger's claim was invalid |
+| Timeout (challenger) | Defender gets 0.9 ETH | Challenger went silent |
+| Timeout (defender) | Challenger gets 0.9 ETH | Defender went silent |
+
+---
+
+## Pre-Flight Check
+
+Before opening a dispute, the `DisputeBridge` runs a pre-flight dry run:
+
+```typescript
+// Pre-flight: verify the claim before risking 1 ETH
+const dryResult = await actionVerifier.verifyAction(
+  actionId, agentId, preStateRoot, transactions, effectClaimHash
+);
+
+if (!dryResult.stateMatch) {
+  // Valid dispute — proceed to openDispute()
+} else {
+  // Dispute would fail — don't waste the bond
+}
+```
+
+This prevents trivially invalid disputes from wasting gas and bonds.
+
+---
+
+## Watchtower Integration
+
+**Watchtowers** are permissionless observers that monitor the network for incorrect verifications. Any address can register as a watchtower by staking ETH in the `WatchtowerRegistry`:
+
+```bash
+# Register as a watchtower (0.01 ETH minimum stake)
+cast send 0x4E0C353e26fBC9aB5fe5bb7A5195e3cC1ae35773 \
+  "registerWatchtower()" \
+  --value 0.01ether \
+  --rpc-url https://sepolia.base.org \
+  --private-key YOUR_KEY
+```
+
+Watchtowers earn a portion of the dispute bond when they successfully challenge an invalid verification.
+
+---
+
+## Contract Details
+
+| Property | Value |
+|---|---|
+| BisectionCourtV3 | `0xe6a487e32dcea696536b42326b904e77adb221be` (UUPS proxy) |
+| WatchtowerRegistry | `0x4E0C353e26fBC9aB5fe5bb7A5195e3cC1ae35773` |
+| Bond | 1 ETH (dispute opener) |
+| Rounds | 10 (bisection steps) |
+| Treasury cut | 10% of bond |
+| Network | Base Sepolia (84532) |
+| Owner | AgentChainHelm V2 (`0x4f98...485e`) |

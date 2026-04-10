@@ -1,1177 +1,2754 @@
 {
-  "openapi": "3.0.0",
-  "paths": {
-    "/api/v1/config/public": {
-      "get": {
-        "operationId": "ConfigRegistryController_getPublicConfig",
-        "summary": "Get public platform configuration",
-        "description": "Returns non-sensitive configuration for frontend sync (tier definitions, pricing, thresholds).",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Public configuration object",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "example": {
-                    "tiers.free.monthlyCredits": 10,
-                    "tiers.pro.monthlyCredits": 100,
-                    "tiers.pro.priceMonthlyUsd": 15,
-                    "credits.topUpPacks": [
-                      {
-                        "credits": 50,
-                        "priceUsd": 5
-                      },
-                      {
-                        "credits": 200,
-                        "priceUsd": 15
-                      },
-                      {
-                        "credits": 1000,
-                        "priceUsd": 50
-                      }
-                    ],
-                    "leaderboard.pioneer.taskPoints": 10
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "config"
-        ]
-      }
-    },
-    "/api/v1/credits/balance/{operatorId}": {
-      "get": {
-        "operationId": "CreditLedgerController_getBalance",
-        "summary": "Get credit balance for an operator (self only)",
-        "parameters": [
-          {
-            "name": "operatorId",
-            "required": true,
-            "in": "path",
-            "description": "Operator ID — must match authenticated session",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Credit balance details"
-          }
-        },
-        "tags": [
-          "credits"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/leaderboard/agents": {
-      "get": {
-        "operationId": "LeaderboardController_getAgentRankings",
-        "summary": "Get top 50 agents ranked by ARI, VCI, CQ, or composite score",
-        "parameters": [
-          {
-            "name": "sort",
-            "required": false,
-            "in": "query",
-            "description": "Ranking dimension",
-            "schema": {
-              "enum": [
-                "ari",
-                "vci",
-                "cq",
-                "score"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Max results (1-100)",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Agent rankings with trust level and score breakdown"
-          }
-        },
-        "tags": [
-          "Leaderboard"
-        ]
-      }
-    },
-    "/api/v1/leaderboard/agents/{agentId}/rank": {
-      "get": {
-        "operationId": "LeaderboardController_getAgentRank",
-        "summary": "Get rank and scores for a specific agent",
-        "parameters": [
-          {
-            "name": "agentId",
-            "required": true,
-            "in": "path",
-            "description": "Agent fingerprint ID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "404": {
-            "description": "Agent not found"
-          }
-        },
-        "tags": [
-          "Leaderboard"
-        ]
-      }
-    },
-    "/api/v1/leaderboard/operators": {
-      "get": {
-        "operationId": "LeaderboardController_getOperatorRankings",
-        "summary": "Get top 50 operators ranked by Fleet Commander Index (FCI)",
-        "parameters": [
-          {
-            "name": "sort",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "enum": [
-                "fci",
-                "tasks"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Leaderboard"
-        ]
-      }
-    },
-    "/api/v1/leaderboard/pioneers": {
-      "get": {
-        "operationId": "LeaderboardController_getPioneerRankings",
-        "summary": "Get top 50 operators ranked by Beta Pioneer Points",
-        "parameters": [
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Leaderboard"
-        ]
-      }
-    },
-    "/api/v1/leaderboard/pioneers/events": {
-      "get": {
-        "operationId": "LeaderboardController_getPioneerEvents",
-        "summary": "Get point event history for an operator (public, ordered desc)",
-        "parameters": [
-          {
-            "name": "operatorId",
-            "required": true,
-            "in": "query",
-            "description": "Operator cuid",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Max results (1-200)",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of PioneerPointEvent rows ordered by createdAt desc"
-          }
-        },
-        "tags": [
-          "Leaderboard"
-        ]
-      }
-    },
-    "/api/v1/auth/me": {
-      "get": {
-        "operationId": "AuthController_getMe",
-        "summary": "Return the current authenticated operator profile",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "auth"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/operator/kill-switch": {
-      "patch": {
-        "operationId": "AuthController_setKillSwitch",
-        "summary": "Persist kill-switch state (G3 fix — was local state only)",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "auth"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/operator/guardrails": {
-      "patch": {
-        "operationId": "AuthController_setGuardrails",
-        "summary": "Persist guardrail config (CV-3 fix — was ephemeral)",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "auth"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/operator/export": {
-      "get": {
-        "operationId": "AuthController_exportData",
-        "summary": "Export all operator data as JSON (G4 — data portability)",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "auth"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/fingerprints/{agentId}": {
-      "get": {
-        "operationId": "FingerprintController_getFingerprint",
-        "summary": "Get fingerprint for a specific agent",
-        "parameters": [
-          {
-            "name": "agentId",
-            "required": true,
-            "in": "path",
-            "description": "Agent fingerprint ID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Agent fingerprint with ARI, VCI, CQ and centroid"
-          },
-          "404": {
-            "description": "Agent not found"
-          }
-        },
-        "tags": [
-          "Fingerprints"
-        ],
-        "security": [
-          {
-            "x-api-key": []
-          }
-        ]
-      }
-    },
-    "/api/v1/fingerprints": {
-      "get": {
-        "operationId": "FingerprintController_listFingerprints",
-        "summary": "List agent fingerprints sorted by ARI, VCI, or CQ",
-        "parameters": [
-          {
-            "name": "sort",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "enum": [
-                "ari",
-                "vci",
-                "cq",
-                "driftScore"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Fingerprints"
-        ],
-        "security": [
-          {
-            "x-api-key": []
-          }
-        ]
-      }
-    },
-    "/api/v1/operator/dashboard": {
-      "get": {
-        "operationId": "OperatorController_getDashboard",
-        "summary": "Get dashboard overview (stats, credits, agent count)",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "operator"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/operator/tasks": {
-      "get": {
-        "operationId": "OperatorController_getTasks",
-        "summary": "Get recent tasks",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "operator"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/operator/keys": {
-      "get": {
-        "operationId": "OperatorController_listKeys",
-        "summary": "List API keys (redacted)",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "operator"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      },
-      "post": {
-        "operationId": "OperatorController_createKey",
-        "summary": "Generate a new API key",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "operator"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/operator/keys/{keyId}": {
-      "delete": {
-        "operationId": "OperatorController_revokeKey",
-        "summary": "Revoke an API key",
-        "parameters": [
-          {
-            "name": "keyId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "operator"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/operator/billing": {
-      "get": {
-        "operationId": "OperatorController_getBilling",
-        "summary": "Get credit balance and transaction history",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "operator"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/operator/wallet": {
-      "post": {
-        "operationId": "OperatorController_connectWallet",
-        "summary": "Connect Base Account wallet",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "operator"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/operator/compliance": {
-      "get": {
-        "operationId": "OperatorController_getCompliance",
-        "summary": "Get compliance certificates (PRO/ENTERPRISE)",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "operator"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/operator/compliance/generate": {
-      "post": {
-        "operationId": "OperatorController_generateCompliance",
-        "summary": "Generate a new compliance certificate on demand",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "operator"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/public/stats": {
-      "get": {
-        "operationId": "PublicController_getStats",
-        "summary": "Platform-wide stats (total tasks, agents, operators)",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Platform statistics",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "totalTasks": {
-                      "type": "number"
-                    },
-                    "totalOperators": {
-                      "type": "number"
-                    },
-                    "totalAgents": {
-                      "type": "number"
-                    },
-                    "avgLatencyMs": {
-                      "type": "number"
-                    },
-                    "verificationRate": {
-                      "type": "number"
+    "openapi": "3.0.0",
+    "paths": {
+        "/api/v1/config/public": {
+            "get": {
+                "operationId": "ConfigRegistryController_getPublicConfig",
+                "summary": "Get public platform configuration",
+                "description": "Returns non-sensitive configuration for frontend sync (tier definitions, pricing, thresholds).",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Public configuration object",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "example": {
+                                        "tiers.free.monthlyCredits": 100,
+                                        "tiers.pro.monthlyCredits": 1000,
+                                        "tiers.pro.priceMonthlyUsd": 15,
+                                        "credits.topUpPacks": [
+                                            {
+                                                "credits": 500,
+                                                "priceUsd": 5
+                                            },
+                                            {
+                                                "credits": 2000,
+                                                "priceUsd": 15
+                                            },
+                                            {
+                                                "credits": 10000,
+                                                "priceUsd": 50
+                                            }
+                                        ],
+                                        "leaderboard.pioneer.taskPoints": 25,
+                                        "leaderboard.pioneer.explorerThreshold": 500,
+                                        "leaderboard.pioneer.founderThreshold": 25000
+                                    }
+                                }
+                            }
+                        }
                     }
-                  }
-                }
-              }
+                },
+                "tags": [
+                    "config"
+                ]
             }
-          }
         },
-        "tags": [
-          "public"
-        ]
-      }
-    },
-    "/api/v1/public/proof/{cid}": {
-      "get": {
-        "operationId": "PublicController_getProof",
-        "summary": "View a proof receipt by IPFS CID",
-        "parameters": [
-          {
-            "name": "cid",
-            "required": true,
-            "in": "path",
-            "description": "IPFS CID of the proof receipt",
-            "schema": {
-              "type": "string"
+        "/api/v1/credits/balance/{operatorId}": {
+            "get": {
+                "operationId": "CreditLedgerController_getBalance",
+                "summary": "Get credit balance for an operator (self only)",
+                "parameters": [
+                    {
+                        "name": "operatorId",
+                        "required": true,
+                        "in": "path",
+                        "description": "Operator ID \u2014 must match authenticated session",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Credit balance details"
+                    }
+                },
+                "tags": [
+                    "credits"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
         },
-        "tags": [
-          "public"
-        ]
-      }
-    },
-    "/v1/prior/claim": {
-      "post": {
-        "operationId": "PriorController_uploadPriorClaim",
-        "summary": "Upload context payload or JSON to PRIOR IPFS",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "description": "File upload (multipart) or JSON payload",
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "string"
-              }
+        "/api/v1/credits/topup": {
+            "post": {
+                "operationId": "CreditLedgerController_topUp",
+                "summary": "Add credits to an operator (admin / Stripe server-side only)",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "operatorId",
+                                    "amount",
+                                    "source"
+                                ],
+                                "properties": {
+                                    "operatorId": {
+                                        "type": "string"
+                                    },
+                                    "amount": {
+                                        "type": "number"
+                                    },
+                                    "source": {
+                                        "type": "string",
+                                        "example": "stripe_topup"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "credits"
+                ]
+            }
+        },
+        "/api/v1/leaderboard/agents": {
+            "get": {
+                "operationId": "LeaderboardController_getAgentRankings",
+                "summary": "Get top 50 agents ranked by ARI, VCI, CQ, or composite score",
+                "parameters": [
+                    {
+                        "name": "sort",
+                        "required": false,
+                        "in": "query",
+                        "description": "Ranking dimension",
+                        "schema": {
+                            "enum": [
+                                "ari",
+                                "vci",
+                                "cq",
+                                "score"
+                            ],
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "description": "Max results (1-100)",
+                        "schema": {
+                            "type": "number"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Agent rankings with trust level and score breakdown",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/AgentRankDto"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid sort parameter"
+                    }
+                },
+                "tags": [
+                    "Leaderboard"
+                ]
+            }
+        },
+        "/api/v1/leaderboard/agents/{agentId}/rank": {
+            "get": {
+                "operationId": "LeaderboardController_getAgentRank",
+                "summary": "Get rank and scores for a specific agent",
+                "parameters": [
+                    {
+                        "name": "agentId",
+                        "required": true,
+                        "in": "path",
+                        "description": "Agent fingerprint ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AgentRankDto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Agent not found"
+                    }
+                },
+                "tags": [
+                    "Leaderboard"
+                ]
+            }
+        },
+        "/api/v1/leaderboard/operators": {
+            "get": {
+                "operationId": "LeaderboardController_getOperatorRankings",
+                "summary": "Get top 50 operators ranked by Fleet Commander Index (FCI)",
+                "parameters": [
+                    {
+                        "name": "sort",
+                        "required": false,
+                        "in": "query",
+                        "schema": {
+                            "enum": [
+                                "fci",
+                                "tasks"
+                            ],
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "schema": {
+                            "type": "number"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/OperatorRankDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "Leaderboard"
+                ]
+            }
+        },
+        "/api/v1/leaderboard/pioneers": {
+            "get": {
+                "operationId": "LeaderboardController_getPioneerRankings",
+                "summary": "Get top 50 operators ranked by Beta Pioneer Points",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "schema": {
+                            "type": "number"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/PioneerRankDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "Leaderboard"
+                ]
+            }
+        },
+        "/api/v1/leaderboard/pioneers/events": {
+            "get": {
+                "operationId": "LeaderboardController_getPioneerEvents",
+                "summary": "Get point event history for an operator (Owner or Master Key)",
+                "parameters": [
+                    {
+                        "name": "operatorId",
+                        "required": true,
+                        "in": "query",
+                        "description": "Operator cuid",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "description": "Max results (1-200)",
+                        "schema": {
+                            "type": "number"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of PioneerPointEvent rows ordered by createdAt desc",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/PioneerPointEventDto"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "operatorId is required"
+                    }
+                },
+                "tags": [
+                    "Leaderboard"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    },
+                    {
+                        "x-api-key": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auth/me": {
+            "get": {
+                "operationId": "AuthController_getMe",
+                "summary": "Return the current authenticated operator profile",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OperatorProfileDto"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/kill-switch": {
+            "patch": {
+                "operationId": "AuthController_setKillSwitch",
+                "summary": "Persist kill-switch state (G3 fix \u2014 was local state only)",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/guardrails": {
+            "get": {
+                "operationId": "AuthController_getGuardrails",
+                "summary": "Get current and pending guardrail config",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
             },
-            "application/json": {
-              "schema": {
-                "type": "string"
-              }
+            "patch": {
+                "operationId": "AuthController_setGuardrails",
+                "summary": "Queue guardrail config update \u2014 30s activation delay, 10s write rate limit",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
             }
-          }
         },
-        "responses": {
-          "201": {
-            "description": ""
-          }
+        "/api/v1/operator/export": {
+            "get": {
+                "operationId": "AuthController_exportData",
+                "summary": "Export all operator data as JSON (G4 \u2014 data portability)",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
         },
-        "tags": [
-          "prior"
-        ],
-        "security": [
-          {
-            "x-api-key": []
-          },
-          {
-            "bearer": []
-          }
-        ]
-      }
+        "/v1/prior/claim": {
+            "post": {
+                "operationId": "PriorController_uploadPriorClaim",
+                "summary": "Upload context payload or JSON to PRIOR IPFS",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "description": "File upload (multipart) or JSON payload",
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "string"
+                            }
+                        },
+                        "application/json": {
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "prior"
+                ],
+                "security": [
+                    {
+                        "x-api-key": []
+                    },
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/metrics": {
+            "get": {
+                "operationId": "PrometheusController_index",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/fingerprints/{agentId}": {
+            "get": {
+                "operationId": "FingerprintController_getFingerprint",
+                "summary": "Get fingerprint for a specific agent",
+                "parameters": [
+                    {
+                        "name": "agentId",
+                        "required": true,
+                        "in": "path",
+                        "description": "Agent fingerprint ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FingerprintDto"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Agent not found"
+                    }
+                },
+                "tags": [
+                    "Fingerprints"
+                ],
+                "security": [
+                    {
+                        "x-api-key": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/fingerprints": {
+            "get": {
+                "operationId": "FingerprintController_listFingerprints",
+                "summary": "List agent fingerprints sorted by ARI, VCI, or CQ",
+                "parameters": [
+                    {
+                        "name": "sort",
+                        "required": false,
+                        "in": "query",
+                        "schema": {
+                            "enum": [
+                                "ari",
+                                "vci",
+                                "cq",
+                                "driftScore"
+                            ],
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "schema": {
+                            "type": "number"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FingerprintListResponseDto"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "Fingerprints"
+                ],
+                "security": [
+                    {
+                        "x-api-key": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/dashboard": {
+            "get": {
+                "operationId": "OperatorController_getDashboard",
+                "summary": "Get dashboard overview (stats, credits, agent count)",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DashboardStatsDto"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/tasks": {
+            "get": {
+                "operationId": "OperatorController_getTasks",
+                "summary": "Get recent tasks",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/keys": {
+            "get": {
+                "operationId": "OperatorController_listKeys",
+                "summary": "List API keys (redacted)",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ApiKeyRecordDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "OperatorController_createKey",
+                "summary": "Generate a new API key",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateKeyDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiKeyCreatedDto"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/keys/{keyId}": {
+            "delete": {
+                "operationId": "OperatorController_revokeKey",
+                "summary": "Revoke an API key",
+                "parameters": [
+                    {
+                        "name": "keyId",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessResponseDto"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/billing": {
+            "get": {
+                "operationId": "OperatorController_getBilling",
+                "summary": "Get credit balance and transaction history",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BillingDataDto"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/wallet/nonce": {
+            "get": {
+                "operationId": "OperatorController_getWalletNonce",
+                "summary": "Get EIP-712 wallet bind challenge nonce (step 1 of 2)",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/WalletNonceDto"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/wallet": {
+            "post": {
+                "operationId": "OperatorController_bindWallet",
+                "summary": "Bind Base wallet with EIP-712 signature proof (step 2 of 2)",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/WalletBindDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/WalletBindResultDto"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/compliance": {
+            "get": {
+                "operationId": "OperatorController_getCompliance",
+                "summary": "Get compliance certificates (PRO/ENTERPRISE)",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/ComplianceCertDto"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/compliance/generate": {
+            "post": {
+                "operationId": "OperatorController_generateCompliance",
+                "summary": "Generate a new compliance certificate on demand",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ComplianceCertDto"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/tos/status": {
+            "get": {
+                "operationId": "OperatorController_getTosStatus",
+                "summary": "Get ToS acceptance status",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TosStatusDto"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/operator/tos/accept": {
+            "post": {
+                "operationId": "OperatorController_acceptTos",
+                "summary": "Accept Terms of Service (creates IPFS attestation + system task)",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TosAcceptDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TosAcceptResultDto"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "operator"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/public/stats": {
+            "get": {
+                "operationId": "PublicController_getStats",
+                "summary": "Platform-wide stats (total tasks, agents, operators)",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Platform statistics",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "totalTasks": {
+                                            "type": "number"
+                                        },
+                                        "totalOperators": {
+                                            "type": "number"
+                                        },
+                                        "totalAgents": {
+                                            "type": "number"
+                                        },
+                                        "avgLatencyMs": {
+                                            "type": "number"
+                                        },
+                                        "verificationRate": {
+                                            "type": "number"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "public"
+                ]
+            }
+        },
+        "/api/v1/public/proof/{cid}": {
+            "get": {
+                "operationId": "PublicController_getProof",
+                "summary": "View a proof receipt by IPFS CID",
+                "parameters": [
+                    {
+                        "name": "cid",
+                        "required": true,
+                        "in": "path",
+                        "description": "IPFS CID of the proof receipt",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "public"
+                ]
+            }
+        },
+        "/api/v1/public/agent/{agentId}/passport": {
+            "get": {
+                "operationId": "PublicController_getPassport",
+                "summary": "Agent Passport \u2014 public identity, trust, and x402 block status",
+                "parameters": [
+                    {
+                        "name": "agentId",
+                        "required": true,
+                        "in": "path",
+                        "description": "Agent fingerprint ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Agent passport with trust metrics and defense stack status",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "agentId": {
+                                            "type": "string"
+                                        },
+                                        "trustLevel": {
+                                            "type": "string"
+                                        },
+                                        "ari": {
+                                            "type": "number"
+                                        },
+                                        "vci": {
+                                            "type": "number"
+                                        },
+                                        "cq": {
+                                            "type": "number"
+                                        },
+                                        "driftScore": {
+                                            "type": "number"
+                                        },
+                                        "totalTasks": {
+                                            "type": "number"
+                                        },
+                                        "verifiedTasks": {
+                                            "type": "number"
+                                        },
+                                        "enrolledAt": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "lastActiveAt": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "nullable": true
+                                        },
+                                        "x402": {
+                                            "type": "object",
+                                            "properties": {
+                                                "blocked": {
+                                                    "type": "boolean"
+                                                },
+                                                "reason": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "walletChecked": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "rateLimitMax": {
+                                                    "type": "number",
+                                                    "description": "Max x402 tasks/hour for this wallet"
+                                                },
+                                                "rateLimitRemaining": {
+                                                    "type": "number",
+                                                    "nullable": true,
+                                                    "description": "Remaining tasks in current window (null if Redis unavailable)"
+                                                },
+                                                "rateLimitResetMs": {
+                                                    "type": "number",
+                                                    "nullable": true,
+                                                    "description": "Milliseconds until rate limit window resets"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "public"
+                ]
+            }
+        },
+        "/v1/logs": {
+            "get": {
+                "operationId": "WorkerLogsController_queryLogs",
+                "summary": "Query worker logs from on-chain events",
+                "description": "Fetches IntentExecuted events from ShadowVault, hydrates log content from IPFS. Pagination is block-range-based (fromBlock/toBlock), not offset-based.",
+                "parameters": [
+                    {
+                        "name": "fromBlock",
+                        "required": false,
+                        "in": "query",
+                        "description": "Start block number",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "toBlock",
+                        "required": false,
+                        "in": "query",
+                        "description": "End block number",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "description": "Max results (default: 50)",
+                        "schema": {
+                            "type": "number"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Worker Logs"
+                ]
+            }
+        },
+        "/v1/logs/{cid}": {
+            "get": {
+                "operationId": "WorkerLogsController_getLogByCid",
+                "summary": "Fetch a single worker log from IPFS",
+                "description": "Retrieves the full WorkerLogEntry JSON from Pinata IPFS gateway by CID.",
+                "parameters": [
+                    {
+                        "name": "cid",
+                        "required": true,
+                        "in": "path",
+                        "description": "IPFS CID of the log entry",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Worker Logs"
+                ]
+            }
+        },
+        "/api/pipeline/events": {
+            "get": {
+                "operationId": "PipelineEventsController_getEvents",
+                "summary": "Get recent pipeline events (Master Key or Operator JWT)",
+                "description": "Returns the most recent pipeline events from the Client Zero trade execution pipeline. Events include job acceptance, processing, LLM inference, IPFS pinning, and on-chain settlement.",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "description": "Max events to return (default: 20, max: 100)",
+                        "schema": {
+                            "type": "number"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Pipeline Events"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    },
+                    {
+                        "x-api-key": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/attestations/{taskId}": {
+            "get": {
+                "operationId": "AttestationController_getByTaskId",
+                "parameters": [
+                    {
+                        "name": "taskId",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/api/v1/attestations/uid/{attestationUid}": {
+            "get": {
+                "operationId": "AttestationController_getByUid",
+                "parameters": [
+                    {
+                        "name": "attestationUid",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/v1/intent": {
+            "post": {
+                "operationId": "IntentController_submitIntent",
+                "summary": "Submit a compute intent for the AgentChain network",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "description": "JSON intent payload with bounty amount",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "payload": {
+                                        "type": "object",
+                                        "description": "The compute task data"
+                                    },
+                                    "bounty": {
+                                        "type": "string",
+                                        "description": "USDC bounty amount as decimal string (6 decimals)"
+                                    },
+                                    "requiredCollateral": {
+                                        "type": "string",
+                                        "description": "Shadow Vault v3: required collateral in USDC (optional, 0 = default)"
+                                    },
+                                    "modelCid": {
+                                        "type": "string",
+                                        "description": "EPIC 9.3 Fat Intent: Ollama model tag (e.g. \"gemma3:12b\"). Optional \u2014 worker falls back to OLLAMA_MODEL env var."
+                                    }
+                                },
+                                "required": [
+                                    "payload",
+                                    "bounty"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Intent queued for settlement"
+                    },
+                    "400": {
+                        "description": "Missing required fields"
+                    },
+                    "413": {
+                        "description": "Payload exceeds 2MB limit"
+                    }
+                },
+                "tags": [
+                    "intent"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/v1/intent/tasks/pending": {
+            "get": {
+                "operationId": "IntentController_getPendingTask",
+                "summary": "Pop the oldest pending intent for worker consumption (internal \u2014 admin only)",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Pending intent returned"
+                    },
+                    "204": {
+                        "description": "No pending intents"
+                    }
+                },
+                "tags": [
+                    "intent"
+                ]
+            }
+        },
+        "/v1/intent/report": {
+            "post": {
+                "operationId": "IntentController_reportCompletion",
+                "summary": "Worker reports task completion with on-chain taskId (EIP-191 attested)",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "payloadCid",
+                                    "onChainTaskId",
+                                    "stateRoot",
+                                    "workerAddress"
+                                ],
+                                "properties": {
+                                    "payloadCid": {
+                                        "type": "string",
+                                        "description": "IPFS CID of the original intent payload"
+                                    },
+                                    "onChainTaskId": {
+                                        "type": "string",
+                                        "description": "uint256 taskId from TaskMarket"
+                                    },
+                                    "stateRoot": {
+                                        "type": "string",
+                                        "description": "SHA-256 state root of the compute output"
+                                    },
+                                    "output": {
+                                        "type": "string",
+                                        "description": "Raw compute output (truncated for verification)"
+                                    },
+                                    "workerAddress": {
+                                        "type": "string",
+                                        "description": "Worker EOA or smart account address"
+                                    },
+                                    "operatorId": {
+                                        "type": "string",
+                                        "description": "Operator who submitted the original intent"
+                                    },
+                                    "taskType": {
+                                        "type": "string",
+                                        "description": "Task type for verification routing"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Task record created and verification enqueued"
+                    }
+                },
+                "tags": [
+                    "intent"
+                ]
+            }
+        },
+        "/api/v1/tasks": {
+            "get": {
+                "operationId": "TaskController_listTasks",
+                "summary": "List tasks (paginated)",
+                "description": "Returns a paginated list of tasks with optional filters by status, taskType, or operatorId.",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "required": false,
+                        "in": "query",
+                        "description": "Page number (default: 1)",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "required": false,
+                        "in": "query",
+                        "description": "Items per page (default: 20, max: 100)",
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "required": false,
+                        "in": "query",
+                        "description": "Filter by status (COMPLETED, FAILED, PROCESSING)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "taskType",
+                        "required": false,
+                        "in": "query",
+                        "description": "Filter by task type (general, code, analysis, creative, trade_signal)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "operatorId",
+                        "required": false,
+                        "in": "query",
+                        "description": "Filter by operator ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "agentId",
+                        "required": false,
+                        "in": "query",
+                        "description": "Filter by agent ID (for agent detail pipeline feed)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated task list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "taskType": {
+                                                        "type": "string"
+                                                    },
+                                                    "status": {
+                                                        "type": "string"
+                                                    },
+                                                    "agentId": {
+                                                        "type": "string"
+                                                    },
+                                                    "model": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "provider": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "latencyMs": {
+                                                        "type": "number",
+                                                        "nullable": true
+                                                    },
+                                                    "ipfsCid": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "stateRoot": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "verificationStatus": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "verificationScore": {
+                                                        "type": "number",
+                                                        "nullable": true
+                                                    },
+                                                    "verificationProof": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "description": "TX hash from on-chain verification anchor"
+                                                    },
+                                                    "verificationBasescanUrl": {
+                                                        "type": "string",
+                                                        "nullable": true
+                                                    },
+                                                    "attestationUid": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "description": "EAS Omni-Stamp UID (bytes32 hex)"
+                                                    },
+                                                    "easscanUrl": {
+                                                        "type": "string",
+                                                        "nullable": true,
+                                                        "description": "EASScan deep link"
+                                                    },
+                                                    "createdAt": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "completedAt": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "nullable": true
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "total": {
+                                            "type": "number"
+                                        },
+                                        "page": {
+                                            "type": "number"
+                                        },
+                                        "limit": {
+                                            "type": "number"
+                                        },
+                                        "totalPages": {
+                                            "type": "number"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "tasks"
+                ]
+            }
+        },
+        "/api/v1/tasks/{id}": {
+            "get": {
+                "operationId": "TaskController_getTask",
+                "summary": "Get task by ID",
+                "description": "Returns a single task summary by its ID.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "description": "Task ID (cuid)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Task found"
+                    },
+                    "404": {
+                        "description": "Task not found"
+                    }
+                },
+                "tags": [
+                    "tasks"
+                ]
+            }
+        },
+        "/api/v1/tasks/submit": {
+            "post": {
+                "operationId": "TaskController_submitTask",
+                "summary": "Submit a task for execution",
+                "description": "Full 8-stage pipeline: guardrail \u2192 credit \u2192 compute \u2192 verify \u2192 anchor \u2192 receipt",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "prompt",
+                                    "taskType",
+                                    "agentId"
+                                ],
+                                "properties": {
+                                    "prompt": {
+                                        "type": "string",
+                                        "description": "The prompt/instruction for the LLM",
+                                        "example": "Analyze the sentiment of the following text: \"Bitcoin is looking bullish today\""
+                                    },
+                                    "taskType": {
+                                        "type": "string",
+                                        "enum": [
+                                            "general",
+                                            "code",
+                                            "analysis",
+                                            "creative",
+                                            "trade_signal",
+                                            "evm-action"
+                                        ],
+                                        "description": "Type of task. Use evm-action for deterministic EVM state verification.",
+                                        "example": "analysis"
+                                    },
+                                    "agentId": {
+                                        "type": "string",
+                                        "description": "Agent fingerprint ID (unique per agent)",
+                                        "example": "agent-alpha-001"
+                                    },
+                                    "metadata": {
+                                        "type": "object",
+                                        "description": "Optional metadata for the task"
+                                    },
+                                    "model": {
+                                        "type": "string",
+                                        "description": "Model slug from the whitelist (e.g. \"llama-3.3-70b\"). Defaults to llama-3.3-70b if omitted. Ignored for evm-action type.",
+                                        "example": "llama-3.3-70b"
+                                    },
+                                    "evmPayload": {
+                                        "type": "object",
+                                        "description": "Required when taskType is evm-action. EVM action payload for deterministic verification.",
+                                        "properties": {
+                                            "actionId": {
+                                                "type": "string",
+                                                "description": "bytes32 hex \u2014 unique action identifier"
+                                            },
+                                            "agentId": {
+                                                "type": "string",
+                                                "description": "Agent wallet address (0x...)"
+                                            },
+                                            "preStateRoot": {
+                                                "type": "string",
+                                                "description": "bytes32 hex \u2014 EVM state root before action"
+                                            },
+                                            "transactions": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "target": {
+                                                            "type": "string",
+                                                            "description": "Contract address (0x...)"
+                                                        },
+                                                        "calldata": {
+                                                            "type": "string",
+                                                            "description": "ABI-encoded calldata (0x...)"
+                                                        },
+                                                        "value": {
+                                                            "type": "string",
+                                                            "description": "Wei value as decimal string"
+                                                        },
+                                                        "slippageBps": {
+                                                            "type": "string",
+                                                            "description": "Slippage tolerance in basis points"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "effectClaimHash": {
+                                                "type": "string",
+                                                "description": "bytes32 hex \u2014 claimed effect hash"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Task executed \u2014 provenance receipt returned",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "taskId": {
+                                            "type": "string"
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "enum": [
+                                                "COMPLETED",
+                                                "UNMETERED",
+                                                "GUARDRAIL_BLOCKED",
+                                                "INSUFFICIENT_CREDITS",
+                                                "COMPUTE_FAILED",
+                                                "OUTPUT_BLOCKED"
+                                            ]
+                                        },
+                                        "agentId": {
+                                            "type": "string"
+                                        },
+                                        "model": {
+                                            "type": "string"
+                                        },
+                                        "provider": {
+                                            "type": "string"
+                                        },
+                                        "latencyMs": {
+                                            "type": "number"
+                                        },
+                                        "output": {
+                                            "type": "string"
+                                        },
+                                        "ipfsCid": {
+                                            "type": "string"
+                                        },
+                                        "stateRoot": {
+                                            "type": "string"
+                                        },
+                                        "verificationStatus": {
+                                            "type": "string"
+                                        },
+                                        "verificationScore": {
+                                            "type": "number"
+                                        },
+                                        "verificationProof": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "description": "TX hash from on-chain verification anchor"
+                                        },
+                                        "verificationBasescanUrl": {
+                                            "type": "string",
+                                            "nullable": true
+                                        },
+                                        "attestationUid": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "description": "EAS Omni-Stamp UID (bytes32 hex)"
+                                        },
+                                        "easscanUrl": {
+                                            "type": "string",
+                                            "nullable": true,
+                                            "description": "EASScan deep link"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body"
+                    },
+                    "401": {
+                        "description": "Missing or invalid JWT"
+                    },
+                    "418": {
+                        "description": "Guardrail or output policy blocked this task. Your operator config is the wall \u2014 check maxCreditsPerDay, maxTasksPerHour, or allowedTaskTypes."
+                    }
+                },
+                "tags": [
+                    "tasks"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/agents/register": {
+            "post": {
+                "operationId": "AgentsController_register",
+                "summary": "Register a new agent",
+                "description": "Atomic: creates API key + pre-seeds fingerprint row. Returns plain API key (shown once).",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "displayName",
+                                    "capabilities"
+                                ],
+                                "properties": {
+                                    "displayName": {
+                                        "type": "string",
+                                        "example": "prod-sentiment-analyzer"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Processes Farcaster sentiment for trading signals"
+                                    },
+                                    "capabilities": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "sentiment_analysis",
+                                            "general"
+                                        ]
+                                    },
+                                    "model": {
+                                        "type": "string",
+                                        "example": "llama3:70b"
+                                    },
+                                    "agentVersion": {
+                                        "type": "string",
+                                        "example": "1.0.0"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Agent registered. API key returned once \u2014 store securely."
+                    }
+                },
+                "tags": [
+                    "Agents"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/agents": {
+            "get": {
+                "operationId": "AgentsController_listAgents",
+                "summary": "List all agents for the authenticated operator",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Agents"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/agents/{agentId}": {
+            "get": {
+                "operationId": "AgentsController_getAgent",
+                "summary": "Get agent detail (wizard resume + detail page)",
+                "parameters": [
+                    {
+                        "name": "agentId",
+                        "required": true,
+                        "in": "path",
+                        "description": "Agent ID (agent_<slug>_<suffix>)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                },
+                "tags": [
+                    "Agents"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/agents/{agentId}/test-run": {
+            "post": {
+                "operationId": "AgentsController_testRun",
+                "summary": "Fire a canonical test task for this agent",
+                "description": "Used by wizard Step 5 and the persistent agent detail test panel. Uses the agent's primary capability and canonical test prompt.",
+                "parameters": [
+                    {
+                        "name": "agentId",
+                        "required": true,
+                        "in": "path",
+                        "description": "Agent ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "taskType": {
+                                        "type": "string",
+                                        "description": "Override task type (defaults to agent primary capability)"
+                                    },
+                                    "prompt": {
+                                        "type": "string",
+                                        "description": "Override prompt (defaults to canonical test prompt)"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Task created and enqueued for pipeline processing."
+                    },
+                    "422": {
+                        "description": "Guardrail blocked \u2014 prompt injection, banned topic, prompt too long, or task type not allowed."
+                    },
+                    "429": {
+                        "description": "Rate limit exceeded \u2014 max tasks/hour or max credits/day."
+                    }
+                },
+                "tags": [
+                    "Agents"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/registry/agents/{agentId}/agent-card.json": {
+            "get": {
+                "operationId": "RegistryController_getAgentCard",
+                "summary": "Get ERC-8004 agent card (public, no auth)",
+                "description": "Returns the machine-readable agent-card.json for the given agent. Used by ERC-8004 discovery clients, other agents, and platform integrations. No authentication required \u2014 this is a public registry endpoint.",
+                "parameters": [
+                    {
+                        "name": "agentId",
+                        "required": true,
+                        "in": "path",
+                        "description": "Agent ID (agent_<slug>_<suffix>)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "ERC-8004 agent card JSON"
+                    },
+                    "404": {
+                        "description": "Agent not found"
+                    }
+                },
+                "tags": [
+                    "Registry"
+                ]
+            }
+        },
+        "/api/v1/registry/agents": {
+            "get": {
+                "operationId": "RegistryController_listPublicAgents",
+                "summary": "List all registered agents (public directory)",
+                "description": "Returns a list of all agents with their agent-card URIs and basic metadata. No authentication required.",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "Array of agent card summaries"
+                    }
+                },
+                "tags": [
+                    "Registry"
+                ]
+            }
+        },
+        "/api/v1/faucet/usdc": {
+            "post": {
+                "operationId": "FaucetController_drip",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/FaucetDripDto"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": ""
+                    }
+                }
+            }
+        }
     },
-    "/v1/logs": {
-      "get": {
-        "operationId": "WorkerLogsController_queryLogs",
-        "summary": "Query worker logs from on-chain events",
-        "description": "Fetches IntentExecuted events from ShadowVault, hydrates log content from IPFS. Pagination is block-range-based (fromBlock/toBlock), not offset-based.",
-        "parameters": [
-          {
-            "name": "fromBlock",
-            "required": false,
-            "in": "query",
-            "description": "Start block number",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "toBlock",
-            "required": false,
-            "in": "query",
-            "description": "End block number",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Max results (default: 50)",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Worker Logs"
-        ]
-      }
+    "info": {
+        "title": "AgentChain & PRIOR API",
+        "description": "The centralized gateway for the decentralized compute network.",
+        "version": "1.0",
+        "contact": {}
     },
-    "/v1/logs/{cid}": {
-      "get": {
-        "operationId": "WorkerLogsController_getLogByCid",
-        "summary": "Fetch a single worker log from IPFS",
-        "description": "Retrieves the full WorkerLogEntry JSON from Pinata IPFS gateway by CID.",
-        "parameters": [
-          {
-            "name": "cid",
-            "required": true,
-            "in": "path",
-            "description": "IPFS CID of the log entry",
-            "schema": {
-              "type": "string"
+    "tags": [],
+    "servers": [
+        {
+            "url": "https://api.agentchain.xyz",
+            "description": "Production"
+        }
+    ],
+    "components": {
+        "securitySchemes": {
+            "bearer": {
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "type": "http"
+            },
+            "x-api-key": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "x-api-key"
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
         },
-        "tags": [
-          "Worker Logs"
-        ]
-      }
-    },
-    "/api/pipeline/events": {
-      "get": {
-        "operationId": "PipelineEventsController_getEvents",
-        "summary": "Get recent pipeline events",
-        "description": "Returns the most recent pipeline events from the Client Zero trade execution pipeline. Events include job acceptance, processing, LLM inference, IPFS pinning, and on-chain settlement.",
-        "parameters": [
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Max events to return (default: 20, max: 100)",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Pipeline Events"
-        ]
-      }
-    },
-    "/v1/intent": {
-      "post": {
-        "operationId": "IntentController_submitIntent",
-        "summary": "Submit a compute intent for the AgentChain network",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "description": "JSON intent payload with bounty amount",
-          "content": {
-            "application/json": {
-              "schema": {
+        "schemas": {
+            "AgentRankDto": {
                 "type": "object",
                 "properties": {
-                  "payload": {
-                    "type": "object",
-                    "description": "The compute task data"
-                  },
-                  "bounty": {
-                    "type": "string",
-                    "description": "USDC bounty amount as decimal string (6 decimals)"
-                  },
-                  "requiredCollateral": {
-                    "type": "string",
-                    "description": "Shadow Vault v3: required collateral in USDC (optional, 0 = default)"
-                  }
+                    "agentId": {
+                        "type": "string"
+                    },
+                    "rank": {
+                        "type": "number"
+                    },
+                    "ari": {
+                        "type": "number"
+                    },
+                    "vci": {
+                        "type": "number"
+                    },
+                    "cq": {
+                        "type": "number"
+                    },
+                    "score": {
+                        "type": "number"
+                    },
+                    "trustLevel": {
+                        "type": "string",
+                        "enum": [
+                            "QUARANTINE",
+                            "PROBATIONARY",
+                            "PROVISIONAL",
+                            "STANDARD",
+                            "TRUSTED"
+                        ]
+                    },
+                    "totalTasks": {
+                        "type": "number"
+                    }
                 },
                 "required": [
-                  "payload",
-                  "bounty"
+                    "agentId",
+                    "rank",
+                    "ari",
+                    "vci",
+                    "cq",
+                    "score",
+                    "trustLevel",
+                    "totalTasks"
                 ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Intent queued for settlement"
-          },
-          "400": {
-            "description": "Missing required fields"
-          },
-          "413": {
-            "description": "Payload exceeds 2MB limit"
-          }
-        },
-        "tags": [
-          "intent"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/tasks": {
-      "get": {
-        "operationId": "TaskController_listTasks",
-        "summary": "List tasks (paginated)",
-        "description": "Returns a paginated list of tasks with optional filters by status, taskType, or operatorId.",
-        "parameters": [
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "description": "Page number (default: 1)",
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Items per page (default: 20, max: 100)",
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "name": "status",
-            "required": false,
-            "in": "query",
-            "description": "Filter by status (COMPLETED, FAILED, PROCESSING)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "taskType",
-            "required": false,
-            "in": "query",
-            "description": "Filter by task type (general, code, analysis, creative, trade_signal)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "operatorId",
-            "required": false,
-            "in": "query",
-            "description": "Filter by operator ID",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Paginated task list",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "taskType": {
-                            "type": "string"
-                          },
-                          "status": {
-                            "type": "string"
-                          },
-                          "agentId": {
-                            "type": "string"
-                          },
-                          "model": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "provider": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "latencyMs": {
-                            "type": "number",
-                            "nullable": true
-                          },
-                          "ipfsCid": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "stateRoot": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "verificationStatus": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "verificationScore": {
-                            "type": "number",
-                            "nullable": true
-                          },
-                          "createdAt": {
-                            "type": "string",
-                            "format": "date-time"
-                          },
-                          "completedAt": {
-                            "type": "string",
-                            "format": "date-time",
-                            "nullable": true
-                          }
-                        }
-                      }
-                    },
-                    "total": {
-                      "type": "number"
-                    },
-                    "page": {
-                      "type": "number"
-                    },
-                    "limit": {
-                      "type": "number"
-                    },
-                    "totalPages": {
-                      "type": "number"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "tasks"
-        ]
-      }
-    },
-    "/api/v1/tasks/{id}": {
-      "get": {
-        "operationId": "TaskController_getTask",
-        "summary": "Get task by ID",
-        "description": "Returns a single task summary by its ID.",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "description": "Task ID (cuid)",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Task found"
-          },
-          "404": {
-            "description": "Task not found"
-          }
-        },
-        "tags": [
-          "tasks"
-        ]
-      }
-    },
-    "/api/v1/tasks/submit": {
-      "post": {
-        "operationId": "TaskController_submitTask",
-        "summary": "Submit a task for execution",
-        "description": "Full 8-stage pipeline: guardrail → credit → compute → verify → anchor → receipt",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
+            },
+            "OperatorRankDto": {
                 "type": "object",
-                "required": [
-                  "prompt",
-                  "taskType",
-                  "agentId"
-                ],
                 "properties": {
-                  "prompt": {
-                    "type": "string",
-                    "description": "The prompt/instruction for the LLM",
-                    "example": "Analyze the sentiment of the following text: \"Bitcoin is looking bullish today\""
-                  },
-                  "taskType": {
-                    "type": "string",
-                    "enum": [
-                      "general",
-                      "code",
-                      "analysis",
-                      "creative",
-                      "trade_signal"
-                    ],
-                    "description": "Type of task",
-                    "example": "analysis"
-                  },
-                  "agentId": {
-                    "type": "string",
-                    "description": "Agent fingerprint ID (unique per agent)",
-                    "example": "agent-alpha-001"
-                  },
-                  "metadata": {
-                    "type": "object",
-                    "description": "Optional metadata for the task"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Task executed — provenance receipt returned",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "taskId": {
-                      "type": "string"
+                    "operatorId": {
+                        "type": "string"
+                    },
+                    "rank": {
+                        "type": "number"
+                    },
+                    "fci": {
+                        "type": "number"
+                    },
+                    "totalTasks": {
+                        "type": "number"
+                    },
+                    "githubLogin": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "operatorId",
+                    "rank",
+                    "fci",
+                    "totalTasks"
+                ]
+            },
+            "PioneerRankDto": {
+                "type": "object",
+                "properties": {
+                    "operatorId": {
+                        "type": "string"
+                    },
+                    "rank": {
+                        "type": "number"
+                    },
+                    "points": {
+                        "type": "number"
+                    },
+                    "tier": {
+                        "type": "string",
+                        "enum": [
+                            "FREE",
+                            "PRO",
+                            "ENTERPRISE"
+                        ]
+                    },
+                    "githubLogin": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "operatorId",
+                    "rank",
+                    "points",
+                    "tier"
+                ]
+            },
+            "PioneerPointEventDto": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "operatorId": {
+                        "type": "string"
+                    },
+                    "points": {
+                        "type": "number"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "createdAt": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "operatorId",
+                    "points",
+                    "reason",
+                    "createdAt"
+                ]
+            },
+            "OperatorProfileDto": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "githubLogin": {
+                        "type": "string"
+                    },
+                    "displayName": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "tier": {
+                        "type": "string",
+                        "enum": [
+                            "FREE",
+                            "PRO",
+                            "ENTERPRISE"
+                        ]
+                    },
+                    "tierOverride": {
+                        "type": "string",
+                        "enum": [
+                            "FREE",
+                            "PRO",
+                            "ENTERPRISE"
+                        ],
+                        "nullable": true
+                    },
+                    "effectiveTier": {
+                        "type": "string",
+                        "enum": [
+                            "FREE",
+                            "PRO",
+                            "ENTERPRISE"
+                        ]
                     },
                     "status": {
-                      "type": "string",
-                      "enum": [
-                        "COMPLETED",
-                        "UNMETERED",
-                        "GUARDRAIL_BLOCKED",
-                        "INSUFFICIENT_CREDITS",
-                        "COMPUTE_FAILED",
-                        "OUTPUT_BLOCKED"
-                      ]
+                        "type": "string",
+                        "enum": [
+                            "ACTIVE",
+                            "SUSPENDED",
+                            "BANNED"
+                        ]
                     },
+                    "flags": {
+                        "type": "object"
+                    },
+                    "walletAddress": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "firstTaskAt": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "hasApiKey": {
+                        "type": "boolean"
+                    },
+                    "pioneerPoints": {
+                        "type": "number"
+                    }
+                },
+                "required": [
+                    "id",
+                    "githubLogin",
+                    "tier",
+                    "tierOverride",
+                    "effectiveTier",
+                    "status",
+                    "hasApiKey"
+                ]
+            },
+            "FingerprintDto": {
+                "type": "object",
+                "properties": {
                     "agentId": {
-                      "type": "string"
+                        "type": "string"
                     },
-                    "model": {
-                      "type": "string"
+                    "trustLevel": {
+                        "type": "string",
+                        "enum": [
+                            "QUARANTINE",
+                            "PROBATIONARY",
+                            "PROVISIONAL",
+                            "STANDARD",
+                            "TRUSTED"
+                        ]
                     },
-                    "provider": {
-                      "type": "string"
+                    "ari": {
+                        "type": "number"
                     },
-                    "latencyMs": {
-                      "type": "number"
+                    "vci": {
+                        "type": "number"
                     },
-                    "output": {
-                      "type": "string"
+                    "cq": {
+                        "type": "number",
+                        "nullable": true
+                    },
+                    "driftScore": {
+                        "type": "number",
+                        "nullable": true
+                    },
+                    "totalTasks": {
+                        "type": "number"
+                    },
+                    "verifiedTasks": {
+                        "type": "number"
+                    },
+                    "successfulTasks": {
+                        "type": "number"
+                    },
+                    "compliantTasks": {
+                        "type": "number"
+                    },
+                    "centroidMean": {
+                        "type": "array",
+                        "items": {
+                            "type": "number"
+                        }
+                    },
+                    "centroidCount": {
+                        "type": "number"
+                    },
+                    "lastActiveAt": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "agentId",
+                    "trustLevel",
+                    "ari",
+                    "vci",
+                    "totalTasks",
+                    "verifiedTasks",
+                    "centroidMean",
+                    "centroidCount"
+                ]
+            },
+            "FingerprintListDto": {
+                "type": "object",
+                "properties": {
+                    "agentId": {
+                        "type": "string"
+                    },
+                    "trustLevel": {
+                        "type": "string",
+                        "enum": [
+                            "QUARANTINE",
+                            "PROBATIONARY",
+                            "PROVISIONAL",
+                            "STANDARD",
+                            "TRUSTED"
+                        ]
+                    },
+                    "ari": {
+                        "type": "number"
+                    },
+                    "vci": {
+                        "type": "number"
+                    },
+                    "cq": {
+                        "type": "number"
+                    },
+                    "driftScore": {
+                        "type": "number"
+                    },
+                    "totalTasks": {
+                        "type": "number"
+                    },
+                    "verifiedTasks": {
+                        "type": "number"
+                    },
+                    "centroidMean": {
+                        "type": "array",
+                        "items": {
+                            "type": "number"
+                        }
+                    },
+                    "lastActiveAt": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "agentId",
+                    "trustLevel",
+                    "ari",
+                    "vci",
+                    "cq",
+                    "driftScore",
+                    "totalTasks",
+                    "verifiedTasks",
+                    "centroidMean"
+                ]
+            },
+            "FingerprintListResponseDto": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/FingerprintListDto"
+                        }
+                    },
+                    "count": {
+                        "type": "number"
+                    }
+                },
+                "required": [
+                    "data",
+                    "count"
+                ]
+            },
+            "DashboardStatsDto": {
+                "type": "object",
+                "properties": {
+                    "creditsRemaining": {
+                        "type": "number"
+                    },
+                    "creditsTotal": {
+                        "type": "number"
+                    },
+                    "creditsResetDays": {
+                        "type": "number"
+                    },
+                    "tasksThisMonth": {
+                        "type": "number"
+                    },
+                    "tasksTrend": {
+                        "type": "number"
+                    },
+                    "verificationRate": {
+                        "type": "number"
+                    },
+                    "verificationTrend": {
+                        "type": "number"
+                    },
+                    "avgLatencyMs": {
+                        "type": "number"
+                    },
+                    "latencyTrend": {
+                        "type": "number"
+                    },
+                    "agentCount": {
+                        "type": "number"
+                    }
+                },
+                "required": [
+                    "creditsRemaining",
+                    "creditsTotal",
+                    "creditsResetDays",
+                    "tasksThisMonth",
+                    "tasksTrend",
+                    "verificationRate",
+                    "verificationTrend",
+                    "avgLatencyMs",
+                    "latencyTrend",
+                    "agentCount"
+                ]
+            },
+            "ApiKeyRecordDto": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "User-defined label"
+                    },
+                    "keyPrefix": {
+                        "type": "string",
+                        "example": "ac_ab12...cd34",
+                        "description": "Prefix for display \u2014 never the full key"
+                    },
+                    "rateLimitRpm": {
+                        "type": "number",
+                        "description": "Requests per minute limit"
+                    },
+                    "lastUsedAt": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "createdAt": {
+                        "type": "string"
+                    },
+                    "isTestKey": {
+                        "type": "boolean",
+                        "description": "True for system-generated diagnostic test keys \u2014 excluded from tier limit count"
+                    },
+                    "testUsesRemaining": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "Remaining uses for test keys; null for production keys"
+                    }
+                },
+                "required": [
+                    "id",
+                    "label",
+                    "keyPrefix",
+                    "rateLimitRpm",
+                    "lastUsedAt",
+                    "createdAt",
+                    "isTestKey",
+                    "testUsesRemaining"
+                ]
+            },
+            "CreateKeyDto": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "example": "Production",
+                        "description": "Human-readable label for this API key"
+                    }
+                },
+                "required": [
+                    "name"
+                ]
+            },
+            "ApiKeyCreatedDto": {
+                "type": "object",
+                "properties": {
+                    "plainKey": {
+                        "type": "string",
+                        "description": "Plain-text key \u2014 shown ONCE, never returned again"
+                    },
+                    "keyId": {
+                        "type": "string"
+                    },
+                    "keyPrefix": {
+                        "type": "string",
+                        "example": "ac_ab12...cd34"
+                    }
+                },
+                "required": [
+                    "plainKey",
+                    "keyId",
+                    "keyPrefix"
+                ]
+            },
+            "SuccessResponseDto": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "success"
+                ]
+            },
+            "CreditBalanceDto": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "operatorId": {
+                        "type": "string"
+                    },
+                    "balance": {
+                        "type": "number"
+                    },
+                    "monthlyAllocation": {
+                        "type": "number"
+                    },
+                    "lastResetAt": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "operatorId",
+                    "balance",
+                    "monthlyAllocation",
+                    "lastResetAt"
+                ]
+            },
+            "BillingDataDto": {
+                "type": "object",
+                "properties": {
+                    "balance": {
+                        "$ref": "#/components/schemas/CreditBalanceDto"
+                    }
+                },
+                "required": [
+                    "balance"
+                ]
+            },
+            "WalletNonceDto": {
+                "type": "object",
+                "properties": {
+                    "nonce": {
+                        "type": "string",
+                        "description": "UUID challenge nonce \u2014 single-use, sign and POST back immediately"
+                    },
+                    "operatorId": {
+                        "type": "string",
+                        "description": "Operator ID to embed in the EIP-712 struct"
+                    },
+                    "domain": {
+                        "type": "string",
+                        "description": "EIP-712 domain name",
+                        "example": "AgentChain"
+                    },
+                    "chainId": {
+                        "type": "number",
+                        "description": "EIP-712 chainId \u2014 8453 for Base Mainnet",
+                        "example": 8453
+                    }
+                },
+                "required": [
+                    "nonce",
+                    "operatorId",
+                    "domain",
+                    "chainId"
+                ]
+            },
+            "WalletBindDto": {
+                "type": "object",
+                "properties": {
+                    "walletAddress": {
+                        "type": "string",
+                        "description": "Base wallet address (0x...) \u2014 must be the signer of the EIP-712 payload",
+                        "example": "0x6a8CB7fd38dB93f9679466ab42CDca8D5951f5a9"
+                    },
+                    "signature": {
+                        "type": "string",
+                        "description": "EIP-712 signature produced by signTypedData over { wallet, operatorId, nonce }",
+                        "example": "0xabc123..."
+                    },
+                    "nonce": {
+                        "type": "string",
+                        "description": "UUID nonce issued by GET /api/v1/operator/wallet/nonce \u2014 single-use, rotated after bind",
+                        "example": "3f87ab12-4c90-4e1d-b3d2-0e1234567890"
+                    }
+                },
+                "required": [
+                    "walletAddress",
+                    "signature",
+                    "nonce"
+                ]
+            },
+            "WalletBindResultDto": {
+                "type": "object",
+                "properties": {
+                    "walletAddress": {
+                        "type": "string",
+                        "description": "Bound wallet address"
+                    },
+                    "firstBind": {
+                        "type": "boolean",
+                        "description": "True if this is the first bind (pioneer points awarded)"
+                    },
+                    "pointsAwarded": {
+                        "type": "number",
+                        "description": "Pioneer points awarded (config-driven, default 250 on first bind, 0 on rebind)"
+                    }
+                },
+                "required": [
+                    "walletAddress",
+                    "firstBind",
+                    "pointsAwarded"
+                ]
+            },
+            "ComplianceCertDto": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "operatorId": {
+                        "type": "string"
+                    },
+                    "issuedAt": {
+                        "type": "string"
+                    },
+                    "expiresAt": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "certHash": {
+                        "type": "string"
+                    },
+                    "tier": {
+                        "type": "string",
+                        "enum": [
+                            "PRO",
+                            "ENTERPRISE"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "operatorId",
+                    "issuedAt",
+                    "certHash",
+                    "tier"
+                ]
+            },
+            "TosStatusDto": {
+                "type": "object",
+                "properties": {
+                    "accepted": {
+                        "type": "boolean",
+                        "description": "Whether the operator has accepted the current ToS"
+                    },
+                    "acceptedAt": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "version": {
+                        "type": "string",
+                        "nullable": true
                     },
                     "ipfsCid": {
-                      "type": "string"
-                    },
-                    "stateRoot": {
-                      "type": "string"
-                    },
-                    "verificationStatus": {
-                      "type": "string"
-                    },
-                    "verificationScore": {
-                      "type": "number"
+                        "type": "string",
+                        "nullable": true
                     }
-                  }
-                }
-              }
+                },
+                "required": [
+                    "accepted"
+                ]
+            },
+            "TosAcceptDto": {
+                "type": "object",
+                "properties": {
+                    "version": {
+                        "type": "string",
+                        "description": "ToS version string (e.g. \"2026-03-27\")",
+                        "example": "2026-03-27"
+                    }
+                },
+                "required": [
+                    "version"
+                ]
+            },
+            "TosAcceptResultDto": {
+                "type": "object",
+                "properties": {
+                    "accepted": {
+                        "type": "boolean"
+                    },
+                    "ipfsCid": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "IPFS CID of the ToS acceptance attestation"
+                    },
+                    "taskId": {
+                        "type": "string",
+                        "description": "ID of the system task recording this acceptance"
+                    },
+                    "acceptedAt": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "accepted",
+                    "ipfsCid",
+                    "taskId",
+                    "acceptedAt"
+                ]
+            },
+            "FaucetDripDto": {
+                "type": "object",
+                "properties": {}
             }
-          },
-          "400": {
-            "description": "Invalid request body or guardrail block"
-          },
-          "401": {
-            "description": "Missing or invalid JWT"
-          }
-        },
-        "tags": [
-          "tasks"
-        ],
-        "security": [
-          {
-            "bearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/faucet/usdc": {
-      "post": {
-        "operationId": "FaucetController_drip",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FaucetDripDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
         }
-      }
     }
-  },
-  "info": {
-    "title": "AgentChain & PRIOR API",
-    "description": "The centralized gateway for the decentralized compute network.",
-    "version": "1.0",
-    "contact": {}
-  },
-  "tags": [],
-  "servers": [
-    {
-      "url": "https://api.agentchain.xyz",
-      "description": "Production"
-    }
-  ],
-  "components": {
-    "securitySchemes": {
-      "bearer": {
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "type": "http"
-      },
-      "x-api-key": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "x-api-key"
-      }
-    },
-    "schemas": {
-      "FaucetDripDto": {
-        "type": "object",
-        "properties": {}
-      }
-    }
-  }
 }

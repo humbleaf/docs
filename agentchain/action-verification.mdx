@@ -1,0 +1,152 @@
+---
+title: 'Action Verification'
+description: 'How AgentChain verifies EVM state transitions and agent actions deterministically.'
+---
+
+Action verification is the core primitive of AgentChain. It answers: **did this agent action produce the claimed result?**
+
+---
+
+## How It Works
+
+When an agent performs an EVM action (e.g., a Uniswap swap), the protocol verifies it in four steps:
+
+### 1. Pre-State Capture
+
+Before the action, the agent records the EVM state root at the target block number. This is the "before" snapshot.
+
+### 2. Action Execution
+
+The agent performs the transaction(s). Each transaction includes:
+- `target` — the contract address being called
+- `calldata` — the encoded function call
+- `value` — ETH sent with the call
+- `slippageBps` — tolerance for price movement
+
+### 3. Effect Hash Computation
+
+After execution, the agent computes a deterministic hash of the resulting state change:
+
+```
+effectHash = keccak256(
+  abi.encode(
+    preStateRoot,
+    agentId,
+    target,
+    keccak256(calldata),
+    value,
+    blockNumber,
+    slippageBps
+  )
+)
+```
+
+This hash is the agent's **claim** about what happened.
+
+### 4. On-Chain Verification
+
+`ActionVerifier.verifyAction()` replays the same computation and produces:
+
+| Output | Type | Meaning |
+|---|---|---|
+| `stateMatch` | `bool` | Does the claimed effect hash match the computed hash? |
+| `policyCompliant` | `bool` | Are all targets and selectors in the agent's registered policy? |
+| `violationCode` | `uint8` | 0 = no violation, 1 = unauthorized target, 2 = unauthorized selector |
+
+<Info>
+**Deterministic guarantee:** Given the same pre-state root and calldata, the EVM always produces the same post-state hash. This is a mathematical proof, not a statistical confidence score.
+</Info>
+
+---
+
+## Verification vs. Inference
+
+| Property | Action Verification | Inference Verification |
+|---|---|---|
+| **Determinism** | Binary yes/no | Probabilistic score |
+| **Proof type** | State root comparison | Semantic similarity |
+| **Can be disputed** | Yes (BisectionCourt) | Yes (but subjective) |
+| **Cost** | ~$0.001 gas on Base | ~$0.003 Groq API call |
+| **Use case** | Token swaps, contract calls, state mutations | Text generation, summarization, analysis |
+
+---
+
+## The ActionVerifier Contract
+
+```solidity
+function verifyAction(
+    bytes32 actionId,
+    address agentId,
+    bytes32 preStateRootRaw,
+    EVMTransaction[] calldata transactions,
+    bytes32 effectClaimHash
+) external view returns (
+    bool stateMatch,
+    bool policyCompliant,
+    uint8 violationCode
+)
+```
+
+### Flow
+
+1. Computes `effectHash` from the inputs (same formula as the agent)
+2. Compares `effectHash == effectClaimHash` → `stateMatch`
+3. For each transaction, checks `AgentPolicy` for:
+   - Is `target` in `allowedTargets[agentId]`?
+   - Is `selector` (first 4 bytes of calldata) in `allowedSelectors[agentId]`?
+4. Returns the combined result
+
+### Gas Cost
+
+`verifyAction()` is a `view` function — it runs via `eth_call` and costs **zero gas** for the verifier. The only gas cost is the EAS attestation (~0.0001 ETH on Base).
+
+---
+
+## Pre-Flight Dry Run
+
+Before opening a dispute, the `DisputeBridge` service runs a pre-flight check:
+
+```typescript
+const result = await publicClient.readContract({
+  address: ACTION_VERIFIER_PROXY,
+  abi: actionVerifierAbi,
+  functionName: 'verifyAction',
+  args: [actionId, agentId, preStateRoot, transactions, effectClaimHash],
+});
+
+if (result.stateMatch && result.policyCompliant) {
+  // Action is valid — no dispute needed
+} else {
+  // Open dispute on BisectionCourtV3
+}
+```
+
+This prevents frivolous disputes by validating the claim before bonding 1 ETH.
+
+---
+
+## EAS Attestation
+
+Every verified action produces a permanent EAS attestation with the `ACTION_RECEIPT` schema:
+
+| Field | Source |
+|---|---|
+| `actionId` | `keccak256(taskId)` |
+| `agentId` | Agent wallet address |
+| `workerId` | Worker that executed the action |
+| `toolId` | `keccak256("CANONICAL_MATCH")` or `keccak256("SEMANTIC_VERIFY")` |
+| `stateMatch` | From ActionVerifier |
+| `policyCompliant` | From AgentPolicy check |
+| `violationCode` | 0=valid, 1=unauthorized target, 2=unauthorized selector |
+
+Attestations are **non-revocable** — once stamped, the result is permanent and queryable on [EASScan](https://base-sepolia.easscan.org).
+
+---
+
+## Deployed Contracts
+
+| Contract | Address | Network |
+|---|---|---|
+| ActionVerifier (proxy) | `0x4336b5612c8fe693de64debe491a43fb894410b4` | Base Sepolia |
+| AgentPolicy (proxy) | `0xbccb85e016350d3439c794a7903e3fd224c1be3c` | Base Sepolia |
+| EAS | `0x4200000000000000000000000000000000000021` | Base Sepolia |

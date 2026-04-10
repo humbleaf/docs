@@ -1,9 +1,9 @@
 ---
 title: 'Quickstart'
-description: 'Submit your first verifiable AI compute task on Base Sepolia in under 5 minutes.'
+description: 'Submit your first verifiable task on Base Sepolia in under 5 minutes.'
 ---
 
-AgentChain routes AI tasks through a verifiable compute network on Base Sepolia. Every task produces a cryptographic proof anchored to IPFS and attested on-chain via EAS.
+AgentChain verifies agent actions and produces permanent cryptographic receipts on Base. Every verified action is attested on-chain via [EAS](https://attest.org) and pinned to IPFS — giving you a tamper-proof audit trail.
 
 This quickstart uses the **REST API directly** — no SDK required.
 
@@ -25,7 +25,7 @@ Your API key: ac_live_xxxxxxxxxxxxxxxxxxxx
 
 ## Step 2 — Fund Your Wallet
 
-Call the faucet to mint MockUSDC to your wallet and pre-fund the payment gate. You need both funded before submitting a task.
+Call the faucet to mint MockUSDC to your wallet and pre-fund the payment gate:
 
 <CodeGroup>
 ```bash curl
@@ -57,28 +57,25 @@ resp = requests.post(
   json={'wallet': '0xYOUR_WALLET_ADDRESS', 'amount': 10},
 )
 data = resp.json()
-payment_tx_hash = data['paymentAddressTxHash']
 ```
 </CodeGroup>
-
-The response includes two tx hashes:
 
 | Field | What it is |
 |---|---|
 | `devWalletTxHash` | MockUSDC minted to your wallet |
 | `paymentAddressTxHash` | MockUSDC minted to the payment gate on your behalf |
-| `creditsAdded` | Off-chain credits loaded (10) |
-| `instructions` | Pre-built `X-402-Payment` header value — copy this |
+| `creditsAdded` | Off-chain credits loaded (default: 10) |
+| `instructions` | Pre-built `X-402-Payment` header value — copy this for Step 3 |
 
 <Warning>
-**Rate limit:** 1 faucet call per wallet per 24 hours (100 USDC max). The `cooldownUntil` field tells you when you can call again.
+**Rate limit:** 1 faucet call per wallet per 24 hours (100 USDC max).
 </Warning>
 
 ---
 
-## Step 3 — Submit a Compute Task
+## Step 3 — Submit a Task
 
-Pass the `paymentAddressTxHash` from Step 2 as the `X-402-Payment` header (Base64-encoded JSON). The faucet response includes a pre-built header value in `instructions` — copy it directly.
+Pass the `paymentAddressTxHash` from Step 2 as the `X-402-Payment` header (Base64-encoded JSON). The faucet response includes a pre-built header value in `instructions`.
 
 <CodeGroup>
 ```bash curl
@@ -96,7 +93,7 @@ curl -X POST https://api.agentchain.xyz/api/v1/tasks/submit \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "Summarize the state of the AI agent economy in 3 sentences.",
-    "model": "gemma3:4b"
+    "taskType": "general"
   }'
 ```
 
@@ -117,66 +114,40 @@ const task = await fetch('https://api.agentchain.xyz/api/v1/tasks/submit', {
   },
   body: JSON.stringify({
     prompt: 'Summarize the state of the AI agent economy in 3 sentences.',
-    model: 'gemma3:4b',
+    taskType: 'general',
   }),
 });
 
-const { taskId, status } = await task.json();
-```
-
-```python Python
-import base64, json, requests
-
-payment_header = base64.b64encode(json.dumps({
-  'txHash': payment_tx_hash,
-  'payer': '0xYOUR_WALLET_ADDRESS',
-  'amount': '10000000',
-  'chainId': 84532,
-}).encode()).decode()
-
-resp = requests.post(
-  'https://api.agentchain.xyz/api/v1/tasks/submit',
-  headers={
-    'x-api-key': 'YOUR_API_KEY',
-    'X-402-Payment': payment_header,
-  },
-  json={
-    'prompt': 'Summarize the state of the AI agent economy in 3 sentences.',
-    'model': 'gemma3:4b',
-  },
-)
-task_id = resp.json()['taskId']
+const receipt = await task.json();
 ```
 </CodeGroup>
 
-**Successful response:**
-
-```json
-{
-  "taskId": "task_abc123",
-  "status": "queued",
-  "estimatedCompletionMs": 8000
-}
-```
-
 ---
 
-## Step 4 — Retrieve the Result
+## Step 4 — Read the Verification Receipt
 
-Poll or fetch the task once it's completed. Each result includes an IPFS proof CID and an on-chain EAS attestation.
+Every task returns a `TaskReceipt` immediately. Verification happens asynchronously — poll `GET /api/v1/tasks/:id` for the final status.
 
 <CodeGroup>
 ```bash curl
-curl https://api.agentchain.xyz/api/v1/tasks/task_abc123 \
+curl https://api.agentchain.xyz/api/v1/tasks/YOUR_TASK_ID \
   -H "x-api-key: YOUR_API_KEY"
 ```
 
 ```typescript TypeScript
-const result = await fetch(`https://api.agentchain.xyz/api/v1/tasks/${taskId}`, {
-  headers: { 'x-api-key': process.env.AGENTCHAIN_API_KEY! },
-});
-
-const { status, output, priorCid, easAttestationUid } = await result.json();
+const result = await fetch(
+  `https://api.agentchain.xyz/api/v1/tasks/${taskId}`,
+  { headers: { 'x-api-key': process.env.AGENTCHAIN_API_KEY! } },
+);
+const {
+  status,
+  verificationStatus,
+  verificationProof,
+  verificationBasescanUrl,
+  attestationUid,
+  easscanUrl,
+  ipfsCid,
+} = await result.json();
 ```
 </CodeGroup>
 
@@ -184,38 +155,77 @@ const { status, output, priorCid, easAttestationUid } = await result.json();
 
 ```json
 {
-  "taskId": "task_abc123",
+  "id": "cm4x7abc123",
   "status": "completed",
-  "output": "The AI agent economy is...",
-  "priorCid": "bafybeif...",
-  "easAttestationUid": "0x...",
-  "proofUrl": "https://easscan.org/attestation/view/0x..."
+  "verificationStatus": "VERIFIED",
+  "verificationScore": 0.95,
+  "verificationProof": "0xabc123...",
+  "verificationBasescanUrl": "https://sepolia.basescan.org/tx/0xabc123...",
+  "attestationUid": "0xdef456...",
+  "easscanUrl": "https://base-sepolia.easscan.org/attestation/view/0xdef456...",
+  "ipfsCid": "bafybeif...",
+  "model": "llama-3.3-70b-versatile",
+  "provider": "groq",
+  "latencyMs": 2340
 }
 ```
 
 | Field | What it proves |
 |---|---|
-| `priorCid` | Task context and result anchored to IPFS via the PRIOR protocol |
-| `easAttestationUid` | On-chain EAS attestation — permanent, verifiable, tamper-proof |
-| `proofUrl` | Public link to view the attestation on EAS Scan |
+| `verificationProof` | On-chain tx hash — the verification result anchored to TaskMarket |
+| `verificationBasescanUrl` | Direct link to the verification transaction on BaseScan |
+| `attestationUid` | Permanent EAS attestation UID (bytes32) — queryable forever |
+| `easscanUrl` | Public link to view the attestation on EAS Scan |
+| `ipfsCid` | Task context + result pinned to IPFS via the PRIOR protocol |
 
 ---
 
-## What just happened?
+## Step 5 — Look Up Attestations
+
+Query all EAS attestations for a task:
+
+```bash
+curl https://api.agentchain.xyz/api/v1/attestations/YOUR_TASK_ID
+```
+
+```json
+{
+  "taskId": "cm4x7abc123",
+  "count": 1,
+  "attestations": [
+    {
+      "attestationUid": "0xdef456...",
+      "schemaType": "VERIFICATION",
+      "status": "VERIFIED",
+      "score": 0.95,
+      "model": "llama-3.3-70b-versatile",
+      "easscanUrl": "https://base-sepolia.easscan.org/attestation/view/0xdef456..."
+    }
+  ]
+}
+```
+
+---
+
+## What Just Happened?
 
 ```
-Your wallet  →  faucet mints USDC  →  payment gate funded
+Your wallet  →  faucet mints MockUSDC  →  payment gate funded
      ↓
 POST /tasks/submit + X-402-Payment header
      ↓
-x402 interceptor verifies on-chain transfer  →  task queued
+X-402 interceptor verifies on-chain transfer  →  task created
      ↓
-BullMQ worker picks up task  →  Ollama runs inference
+Compute provider executes task  →  result pinned to IPFS
      ↓
-Result  →  pinned to IPFS (PRIOR)  →  EAS attestation on Base Sepolia
+Verification oracle scores the result
+     ↓
+Result anchored on-chain (TaskMarket)  →  EAS attestation minted
+     ↓
+attestationUid + easscanUrl returned in task response
 ```
 
-Every step is auditable. The `priorCid` and `easAttestationUid` are your permanent proof of compute.
+Every step is auditable. The `attestationUid` is your permanent, tamper-proof receipt.
 
 ---
 
@@ -223,31 +233,31 @@ Every step is auditable. The `priorCid` and `easAttestationUid` are your permane
 
 <CardGroup cols={2}>
   <Card
+    title="Architecture"
+    icon="sitemap"
+    href="/agentchain/architecture"
+  >
+    Understand the full action → policy → verification → settlement pipeline.
+  </Card>
+  <Card
+    title="Action Verification"
+    icon="shield-check"
+    href="/agentchain/action-verification"
+  >
+    How AgentChain verifies EVM state transitions deterministically.
+  </Card>
+  <Card
+    title="Attestations"
+    icon="certificate"
+    href="/agentchain/attestations"
+  >
+    How EAS Omni-Stamps work and how to query them.
+  </Card>
+  <Card
     title="API Reference"
     icon="code"
     href="/api-reference/tasks/submit-a-task-for-execution"
   >
-    Full task submission schema, models, and response types.
-  </Card>
-  <Card
-    title="Agent Operators"
-    icon="key"
-    href="/agent-operators/overview"
-  >
-    Manage API keys, credits, and agent fleet.
-  </Card>
-  <Card
-    title="PRIOR Protocol"
-    icon="database"
-    href="/prior/overview"
-  >
-    How your task context is anchored to IPFS.
-  </Card>
-  <Card
-    title="Explorer"
-    icon="magnifying-glass"
-    href="https://agentchain.network"
-  >
-    View live tasks, proofs, and agent leaderboards.
+    Full task submission schema, response types, and all 50 endpoints.
   </Card>
 </CardGroup>

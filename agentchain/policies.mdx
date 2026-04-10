@@ -1,0 +1,121 @@
+---
+title: 'Policies'
+description: 'On-chain rules that constrain what agents are allowed to do.'
+---
+
+Policies define the **permission boundary** for an agent. Before an agent's action can be verified as compliant, it must have a registered policy on-chain that explicitly allows the targets and selectors it used.
+
+---
+
+## What Is a Policy?
+
+A policy is an on-chain record in the `AgentPolicy` contract that defines:
+
+| Field | Type | Purpose |
+|---|---|---|
+| `agentId` | `address` | The agent wallet this policy applies to |
+| `rulesetHash` | `bytes32` | Hash of the full ruleset document (stored off-chain) |
+| `allowedTargets` | `address[]` | Contract addresses the agent is allowed to call |
+| `allowedSelectors` | `bytes4[]` | Function selectors the agent is allowed to invoke |
+
+<Info>
+**Policies are additive.** An agent can register multiple policies. The ActionVerifier checks if the action's target and selector appear in **any** of the agent's active policies.
+</Info>
+
+---
+
+## Registering a Policy
+
+Call `AgentPolicy.registerPolicy()` with the agent's allowed targets and selectors:
+
+<CodeGroup>
+```bash cast (Foundry)
+# Allow agent to call Uniswap V3 Router's exactInputSingle
+cast send 0xbccb85e016350d3439c794a7903e3fd224c1be3c \
+  "registerPolicy(address,bytes32,address[],bytes4[])" \
+  YOUR_AGENT_ADDRESS \
+  $(cast keccak "uniswap-v3-swap-only") \
+  "[0x2626664c2603336E57B271c5C0b26F421741e481]" \
+  "[0x414bf389]" \
+  --rpc-url https://sepolia.base.org \
+  --private-key YOUR_AGENT_PRIVATE_KEY
+```
+
+```typescript viem
+import { createWalletClient, http, encodeFunctionData } from 'viem';
+import { baseSepolia } from 'viem/chains';
+
+const tx = await walletClient.writeContract({
+  address: '0xbccb85e016350d3439c794a7903e3fd224c1be3c',
+  abi: agentPolicyAbi,
+  functionName: 'registerPolicy',
+  args: [
+    agentAddress,
+    keccak256(toHex('uniswap-v3-swap-only')),
+    ['0x2626664c2603336E57B271c5C0b26F421741e481'], // Uniswap V3 Router
+    ['0x414bf389'],                                   // exactInputSingle selector
+  ],
+});
+```
+</CodeGroup>
+
+---
+
+## How Policies Are Enforced
+
+When `ActionVerifier.verifyAction()` runs, it checks each transaction in the action payload:
+
+```
+For each transaction:
+  1. Is transaction.target in agentPolicy.allowedTargets[agentId]?
+     → No: violationCode = 1 (UNAUTHORIZED_TARGET)
+  2. Is transaction.selector in agentPolicy.allowedSelectors[agentId]?
+     → No: violationCode = 2 (UNAUTHORIZED_SELECTOR)
+  3. Both pass: policyCompliant = true
+```
+
+### Violation Codes
+
+| Code | Name | Meaning |
+|---|---|---|
+| 0 | `NONE` | No violation — action is policy-compliant |
+| 1 | `UNAUTHORIZED_TARGET` | The contract address is not in the agent's allowed targets |
+| 2 | `UNAUTHORIZED_SELECTOR` | The function selector is not in the agent's allowed selectors |
+
+---
+
+## Policy Design Patterns
+
+### Minimal Permission (Recommended)
+
+Register the exact targets and selectors your agent needs. Nothing more.
+
+```
+Allowed targets:   [UniswapRouter, WETH, USDC]
+Allowed selectors: [exactInputSingle, approve, transfer]
+```
+
+### Broad Permission (Development Only)
+
+For testing, you can register a wildcard policy. **Do not use in production.**
+
+```
+Allowed targets:   [0x0000...0000]  // special: matches all targets
+Allowed selectors: [0x00000000]     // special: matches all selectors
+```
+
+<Warning>
+**Wildcard policies bypass all compliance checks.** The ActionVerifier will always return `policyCompliant: true` regardless of what the agent does. This is dangerous and should only be used on testnets.
+</Warning>
+
+---
+
+## Contract Details
+
+| Property | Value |
+|---|---|
+| Contract | AgentPolicy (UUPS proxy) |
+| Address | `0xbccb85e016350d3439c794a7903e3fd224c1be3c` |
+| Network | Base Sepolia (84532) |
+| Owner | AgentChainHelm V2 (`0x4f98...485e`) |
+| Upgradeable | Yes — via Helm executeUpgrade (48h timelock) |

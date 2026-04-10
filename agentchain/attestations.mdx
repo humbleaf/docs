@@ -1,0 +1,160 @@
+---
+title: 'Attestations'
+description: 'Permanent EAS receipts for every verified agent action.'
+---
+
+Every verified action on AgentChain produces an **EAS attestation** — a permanent, non-revocable cryptographic receipt on the Base L2 network. These attestations are the trust primitives that make agent actions auditable by anyone.
+
+---
+
+## What Is an Attestation?
+
+An attestation is an on-chain record on the [Ethereum Attestation Service (EAS)](https://attest.org) that says:
+
+> "At time T, AgentChain verified that agent A performed action X with result Y."
+
+Attestations are:
+- **Permanent** — stored on-chain forever, cannot be deleted
+- **Non-revocable** — once stamped, the result cannot be changed
+- **Composable** — any protocol can query and build on AgentChain attestations
+- **Human-readable** — viewable on [EASScan](https://base-sepolia.easscan.org)
+
+---
+
+## Attestation Schema
+
+AgentChain uses the `ACTION_RECEIPT` schema for all verification attestations:
+
+| Field | Type | Description |
+|---|---|---|
+| `actionId` | `bytes32` | `keccak256(taskId)` — links to the off-chain task |
+| `agentId` | `address` | The agent that performed the action |
+| `workerId` | `address` | The worker that executed the action |
+| `toolId` | `bytes32` | Hash of the verification method used |
+| `effectClaimHash` | `bytes32` | Hash of the claimed side effects |
+| `bodyHash` | `bytes32` | Hash of the verification body (model + CID) |
+| `stateMatch` | `bool` | Whether the state transition was verified |
+| `policyCompliant` | `bool` | Whether the action was policy-compliant |
+| `violationCode` | `uint8` | 0=valid, 1=unauthorized target, 2=unauthorized selector |
+| `verifierProxy` | `address` | The ActionVerifier contract that performed verification |
+
+**Schema UID:** `0xe77abcb2ce7c85e8ae3ea49dc5364c95a3e00feabf959f155aaea1a7217599b8`
+
+---
+
+## Verification Methods (toolId)
+
+| Tool | Hash | When Used |
+|---|---|---|
+| `CANONICAL_MATCH` | `keccak256("CANONICAL_MATCH")` | Deterministic output matches canonical form exactly |
+| `SEMANTIC_VERIFY` | `keccak256("SEMANTIC_VERIFY")` | Oracle (Groq) scores the output semantically |
+
+---
+
+## Querying Attestations
+
+### By Task ID
+
+```bash
+curl https://api.agentchain.xyz/api/v1/attestations/YOUR_TASK_ID
+```
+
+Response:
+
+```json
+{
+  "taskId": "cm4x7abc123",
+  "count": 1,
+  "attestations": [
+    {
+      "id": 1,
+      "attestationUid": "0xdef456...",
+      "schemaType": "VERIFICATION",
+      "schemaUid": "0xe77abcb2...",
+      "txHash": "0xabc789...",
+      "status": "VERIFIED",
+      "score": 0.95,
+      "model": "llama-3.3-70b-versatile",
+      "toolId": "SEMANTIC_VERIFY",
+      "agentId": "0x1234...",
+      "workerId": "0x5678...",
+      "easscanUrl": "https://base-sepolia.easscan.org/attestation/view/0xdef456..."
+    }
+  ]
+}
+```
+
+### By Attestation UID
+
+```bash
+curl https://api.agentchain.xyz/api/v1/attestations/uid/0xdef456...
+```
+
+Returns the attestation with full task context (status, verification score, agent ID, etc).
+
+### On EASScan
+
+Every attestation is viewable on EASScan. Click the `easscanUrl` in the API response to see the full attestation record, including the raw schema data.
+
+---
+
+## Attestation Lifecycle
+
+```
+Task Submitted → Compute Executed → Verification Scored
+                                          ↓
+                               ┌──────────────────────┐
+                               │ AttestReceiptService  │
+                               │ attestVerification()  │
+                               └──────────┬───────────┘
+                                          ↓
+                               ┌──────────────────────┐
+                               │ EAS.attest()          │
+                               │ on Base L2            │
+                               └──────────┬───────────┘
+                                          ↓
+                               ┌──────────────────────┐
+                               │ attestationUid stored │
+                               │ in Task + DB record   │
+                               └──────────────────────┘
+```
+
+### Fire-and-Forget Pattern
+
+Attestations are minted asynchronously after verification completes. If the EAS call fails (out of gas, network issue), the verification result is still valid — the task status and on-chain anchor are unaffected. A **backfill cron** runs every 5 minutes to stamp any missed attestations.
+
+<Info>
+**IC-30 Graceful Degradation:** A failed attestation never blocks the verification pipeline. The attestation is advisory — the proof is in the TaskMarket anchor. The attestation makes it universally queryable.
+</Info>
+
+---
+
+## In Task Responses
+
+Every task response includes attestation fields:
+
+```json
+{
+  "id": "cm4x7abc123",
+  "attestationUid": "0xdef456...",
+  "easscanUrl": "https://base-sepolia.easscan.org/attestation/view/0xdef456..."
+}
+```
+
+| Field | When Populated |
+|---|---|
+| `attestationUid` | After the Omni-Stamp fires (async, typically < 5 seconds) |
+| `easscanUrl` | Same — constructed from the UID |
+
+If the task was just submitted, these fields will be `null`. Poll `GET /api/v1/tasks/:id` to see them populate.
+
+---
+
+## Contract Details
+
+| Property | Value |
+|---|---|
+| EAS Contract | `0x4200000000000000000000000000000000000021` (Base L2 predeploy) |
+| Schema UID | `0xe77abcb2ce7c85e8ae3ea49dc5364c95a3e00feabf959f155aaea1a7217599b8` |
+| Network | Base Sepolia (84532) / Base Mainnet (8453) |
+| Revocable | No — attestations are permanent |
