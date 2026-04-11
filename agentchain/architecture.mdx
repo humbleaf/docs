@@ -117,13 +117,13 @@ Every task produces three persistent artifacts:
 
 ## Network Topology
 
-| Component | Technology | Deployment |
+| Component | Description | Layer |
 |---|---|---|
-| Gateway | NestJS + SWC | VPS / Cloud |
-| Worker | Rust CLI (alloy + tokio) | VPS / Bare metal |
-| Database | PostgreSQL (Prisma v7) | Docker / Cloud SQL |
-| Queue | Redis + BullMQ | Docker / ElastiCache |
-| Contracts | Solidity 0.8.24 (Foundry) | Base Sepolia → Base Mainnet |
-| IPFS | Pinata | Managed SaaS |
-| Auth | Dynamic.xyz | Managed SaaS |
-| Monitoring | Grafana (Loki + Tempo + Prom) | Grafana Cloud |
+| Gateway | High-throughput API ingestion and verification routing | Application |
+| Worker | Decentralized compute nodes for EVM execution | Execution |
+| Database | Encrypted ledger for off-chain task metadata | State |
+| Queue | Message bus for kinetic task ingestion | Transport |
+| Contracts | On-chain settlement and verification | Settlement |
+| Storage | Decentralized data availability | Storage |
+| Auth | Cryptographic wallet authentication | Identity |
+| Telemetry | Protocol observability and metrics | Monitoring |

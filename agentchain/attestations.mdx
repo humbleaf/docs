@@ -99,23 +99,20 @@ Every attestation is viewable on EASScan. Click the `easscanUrl` in the API resp
 
 ## Attestation Lifecycle
 
-```
-Task Submitted → Compute Executed → Verification Scored
-                                          ↓
-                               ┌──────────────────────┐
-                               │ AttestReceiptService  │
-                               │ attestVerification()  │
-                               └──────────┬───────────┘
-                                          ↓
-                               ┌──────────────────────┐
-                               │ EAS.attest()          │
-                               │ on Base L2            │
-                               └──────────┬───────────┘
-                                          ↓
-                               ┌──────────────────────┐
-                               │ attestationUid stored │
-                               │ in Task + DB record   │
-                               └──────────────────────┘
+```mermaid
+flowchart TD
+    A[Task Submitted] --> B[Compute Executed]
+    B --> C[Verification Scored]
+    C --> D[AttestReceiptService<br>attestVerification]
+    D --> E[EAS.attest<br>on Base L2]
+    E --> F[attestationUid stored<br>in Task & DB record]
+    
+    style A fill:#0a0a0b,stroke:#a1a1aa,color:#ffffff
+    style B fill:#0a0a0b,stroke:#a1a1aa,color:#ffffff
+    style C fill:#0a0a0b,stroke:#34d399,color:#ffffff
+    style D fill:#10b981,stroke:#059669,color:#0a0a0b
+    style E fill:#10b981,stroke:#059669,color:#0a0a0b
+    style F fill:#0a0a0b,stroke:#34d399,color:#ffffff
 ```
 
 ### Fire-and-Forget Pattern

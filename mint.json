@@ -6,9 +6,9 @@
     "body": { "family": "Inter" }
   },
   "colors": {
-    "primary": "#D4AF37",
-    "light": "#F3E5AB",
-    "dark": "#B8860B"
+    "primary": "#10B981",
+    "light": "#34D399",
+    "dark": "#059669"
   },
   "favicon": "/favicon.svg",
   "logo": {
@@ -61,6 +61,7 @@
     {
       "group": "Infrastructure",
       "pages": [
+        "agentchain/mpc-worker",
         "agentchain/sdk"
       ]
     },
@@ -117,6 +118,13 @@
       "group": "Developer Tools",
       "pages": [
         "api-reference/faucet/fund-wallet-with-mock-usdc"
+      ]
+    },
+    {
+      "group": "MPC Worker Node API",
+      "pages": [
+        "api-reference/intent/fetch-oldest-pending-tasks-for-mpc-worker",
+        "api-reference/prior/upload-context-payload-or-json-to-prior-ipfs"
       ]
     },
     {

@@ -3,7 +3,6 @@
   "denyPaths": [
     "/metrics",
     "/events/stream",
-    "/v1/intent/tasks/pending",
     "/api/v1/credits/topup",
     "/webhook/farcaster",
     "/webhook/x402/submit",
@@ -18,8 +17,7 @@
   "denyPathPrefixes": [
     "/admin",
     "/api/v1/fingerprints",
-    "/api/v1/leaderboard",
-    "/api/v1/prior"
+    "/api/v1/leaderboard"
   ],
   "denyServers": [
     "http://localhost:3000"
@@ -34,6 +32,6 @@
     "/api/v1/operator/guardrails": "bearer",
     "/api/v1/operator/kill-switch": "bearer"
   },
-  "expectedPublicRouteCount": 32,
-  "_expectedPublicRouteCount_note": "IC-19 rename guard. 36 - Stripe x3 - public/leaderboard duplicate = 32. Update intentionally when adding or removing public routes."
+  "expectedPublicRouteCount": 53,
+  "_expectedPublicRouteCount_note": "IC-19 rename guard. Update intentionally when adding or removing public routes."
 }
