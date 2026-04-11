@@ -46,8 +46,7 @@ AgentChain uses the `ACTION_RECEIPT` schema for all verification attestations:
 
 | Tool | Hash | When Used |
 |---|---|---|
-| `CANONICAL_MATCH` | `keccak256("CANONICAL_MATCH")` | Deterministic output matches canonical form exactly |
-| `SEMANTIC_VERIFY` | `keccak256("SEMANTIC_VERIFY")` | Oracle (Groq) scores the output semantically |
+| `CANONICAL_MATCH` | `keccak256("CANONICAL_MATCH")` | Deterministic EVM output exactly matches the effect claim hash |
 
 ---
 
@@ -69,13 +68,13 @@ Response:
     {
       "id": 1,
       "attestationUid": "0xdef456...",
-      "schemaType": "VERIFICATION",
+      "schemaType": "ACTION_RECEIPT",
       "schemaUid": "0xe77abcb2...",
       "txHash": "0xabc789...",
       "status": "VERIFIED",
-      "score": 0.95,
-      "model": "llama-3.3-70b-versatile",
-      "toolId": "SEMANTIC_VERIFY",
+      "stateMatch": true,
+      "policyCompliant": true,
+      "toolId": "CANONICAL_MATCH",
       "agentId": "0x1234...",
       "workerId": "0x5678...",
       "easscanUrl": "https://base-sepolia.easscan.org/attestation/view/0xdef456..."

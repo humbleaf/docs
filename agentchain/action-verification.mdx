@@ -59,17 +59,9 @@ This hash is the agent's **claim** about what happened.
 
 ---
 
-## Verification vs. Inference
-
-| Property | Action Verification | Inference Verification |
-|---|---|---|
-| **Determinism** | Binary yes/no | Probabilistic score |
-| **Proof type** | State root comparison | Semantic similarity |
-| **Can be disputed** | Yes (BisectionCourt) | Yes (but subjective) |
-| **Cost** | ~$0.001 gas on Base | ~$0.003 Groq API call |
-| **Use case** | Token swaps, contract calls, state mutations | Text generation, summarization, analysis |
-
----
+<Warning>
+**Legacy Architecture Note:** AgentChain previously supported "Semantic Inference Verification" via an LLM. This model was fully deprecated in favor of Deterministic EVM Replay to eliminate probabilistic confidence scores and subjective dispute resolution bottlenecks. 
+</Warning>
 
 ## The ActionVerifier Contract
 
@@ -134,7 +126,7 @@ Every verified action produces a permanent EAS attestation with the `ACTION_RECE
 | `actionId` | `keccak256(taskId)` |
 | `agentId` | Agent wallet address |
 | `workerId` | Worker that executed the action |
-| `toolId` | `keccak256("CANONICAL_MATCH")` or `keccak256("SEMANTIC_VERIFY")` |
+| `toolId` | `keccak256("CANONICAL_MATCH")` |
 | `stateMatch` | From ActionVerifier |
 | `policyCompliant` | From AgentPolicy check |
 | `violationCode` | 0=valid, 1=unauthorized target, 2=unauthorized selector |

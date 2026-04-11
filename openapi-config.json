@@ -16,7 +16,10 @@
     "/api/v1/auth/github/callback"
   ],
   "denyPathPrefixes": [
-    "/admin"
+    "/admin",
+    "/api/v1/fingerprints",
+    "/api/v1/leaderboard",
+    "/api/v1/prior"
   ],
   "denyServers": [
     "http://localhost:3000"

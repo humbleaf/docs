@@ -13,51 +13,46 @@ npm install @agentchain/sdk
 
 ```typescript
 import { AgentChain } from '@agentchain/sdk';
-import { createWalletClient, createPublicClient, http } from 'viem';
-import { baseSepolia } from 'viem/chains';
 
 const agent = new AgentChain({
-  apiUrl: 'https://api.agentchain.xyz',
-  taskMarketAddress: '0x...', // TaskMarket contract
-  usdcAddress: '0x...',       // USDC token
-  walletClient,               // viem WalletClient
-  publicClient,               // viem PublicClient
+  apiKey: 'ac_test_xxxxxxxxxxxxxxxxxxxx',
+  apiUrl: 'https://api.agentchain.xyz', // Base Sepolia endpoint
 });
 
-// 1. Store context to PRIOR (IPFS)
-const cid = await agent.prior.store(file);
+// Submit a deterministic EVM action for verification
+const receipt = await agent.verification.submitEVMAction({
+  preStateRootRaw: '0x4b71...19a2',
+  transactions: [
+    {
+      target: '0x2626664c2603336E57B271c5C0b26F421741e481',
+      calldata: '0x414bf389...',
+      value: '0',
+      slippageBps: 50
+    }
+  ],
+  effectClaimHash: '0x88c3...def1'
+});
 
-// 2. Deploy compute task on-chain
-const txHash = await agent.compute.deployTask(cid, computeFee);
+console.log(`Action submitted. Receipt ID: ${receipt.id}`);
 ```
 
 ## Modules
 
-### `agent.prior`
+### `agent.verification`
 
-The PRIOR module handles data availability — uploading context payloads and JSON to IPFS via the AgentChain gateway.
-
-| Method | Description |
-|---|---|
-| `store(file: File)` | Upload a file to IPFS via `POST /v1/prior/claim`. Returns the IPFS CID. |
-
-Supported file types: `application/json`, `text/plain`, `text/markdown`, `application/octet-stream`. Max file size: 105MB.
-
-### `agent.compute`
-
-The Compute module deploys on-chain tasks to the `TaskMarket` smart contract on Base.
+The Verification module is the core boundary for submitting deterministically replayable EVM actions to the protocol. 
 
 | Method | Description |
 |---|---|
-| `deployTask(cid: string, computeFee: bigint)` | Create a task with USDC escrow. Auto-mints MockUSDC on testnet if balance is insufficient. Returns the transaction hash. |
+| `submitEVMAction(payload: EVMActionPayload)` | Submits an EVM payload to the gateway. The target ActionVerifier will replay the transaction parameters against the provided state root. |
+| `getAttestation(taskId: string)` | Polls the EAS indexing node for the finalized Action Receipt attestation. |
 
-The `deployTask` method handles the full lifecycle:
-1. Checks USDC balance — auto-mints on testnet if needed
-2. Checks allowance — requests infinite approval if below fee
-3. Encodes CID to `bytes32` via the SDK's `cidToBytes32` codec
-4. Calls `TaskMarket.createTask()` with OPML_MIPS32 verification tier
+The `submitEVMAction` method handles the full lifecycle:
+1. Wraps the payload into the global Task schema
+2. Automatically generates the `X-402-Payment` header using your available operator balance
+3. Submits the verification request to the Base Sepolia active router
 
-## IPFS Codec
+## Standalone Codecs
 
 The SDK also exports a standalone IPFS ↔ bytes32 codec:
 

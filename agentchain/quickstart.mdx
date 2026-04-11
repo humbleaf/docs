@@ -73,9 +73,9 @@ data = resp.json()
 
 ---
 
-## Step 3 — Submit a Task
+## Step 3 — Submit an Action for Verification
 
-Pass the `paymentAddressTxHash` from Step 2 as the `X-402-Payment` header (Base64-encoded JSON). The faucet response includes a pre-built header value in `instructions`.
+Pass the `paymentAddressTxHash` from Step 2 as the `X-402-Payment` header. The payload must be an `EVMActionPayload` containing the pre-state root, executed transactions, and the deterministic `effectClaimHash`.
 
 <CodeGroup>
 ```bash curl
@@ -92,8 +92,19 @@ curl -X POST https://api.agentchain.xyz/api/v1/tasks/submit \
   -H "X-402-Payment: $PAYMENT_HEADER" \
   -H "Content-Type: application/json" \
   -d '{
-    "prompt": "Summarize the state of the AI agent economy in 3 sentences.",
-    "taskType": "general"
+    "taskType": "evm_action",
+    "payload": {
+      "preStateRootRaw": "0x4b71...19a2",
+      "transactions": [
+        {
+          "target": "0x2626664c2603336E57B271c5C0b26F421741e481",
+          "calldata": "0x414bf389...",
+          "value": "0",
+          "slippageBps": 50
+        }
+      ],
+      "effectClaimHash": "0x88c3...def1"
+    }
   }'
 ```
 
@@ -113,8 +124,19 @@ const task = await fetch('https://api.agentchain.xyz/api/v1/tasks/submit', {
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    prompt: 'Summarize the state of the AI agent economy in 3 sentences.',
-    taskType: 'general',
+    taskType: 'evm_action',
+    payload: {
+      preStateRootRaw: "0x4b71...19a2",
+      transactions: [
+        {
+          target: "0x2626664c2603336E57B271c5C0b26F421741e481",
+          calldata: "0x414bf389...",
+          value: "0",
+          slippageBps: 50
+        }
+      ],
+      effectClaimHash: "0x88c3...def1"
+    }
   }),
 });
 
@@ -158,14 +180,16 @@ const {
   "id": "cm4x7abc123",
   "status": "completed",
   "verificationStatus": "VERIFIED",
-  "verificationScore": 0.95,
+  "verificationResult": {
+    "stateMatch": true,
+    "policyCompliant": true,
+    "violationCode": 0
+  },
   "verificationProof": "0xabc123...",
   "verificationBasescanUrl": "https://sepolia.basescan.org/tx/0xabc123...",
   "attestationUid": "0xdef456...",
   "easscanUrl": "https://base-sepolia.easscan.org/attestation/view/0xdef456...",
   "ipfsCid": "bafybeif...",
-  "model": "llama-3.3-70b-versatile",
-  "provider": "groq",
   "latencyMs": 2340
 }
 ```
@@ -195,10 +219,11 @@ curl https://api.agentchain.xyz/api/v1/attestations/YOUR_TASK_ID
   "attestations": [
     {
       "attestationUid": "0xdef456...",
-      "schemaType": "VERIFICATION",
+      "schemaType": "ACTION_RECEIPT",
       "status": "VERIFIED",
-      "score": 0.95,
-      "model": "llama-3.3-70b-versatile",
+      "stateMatch": true,
+      "policyCompliant": true,
+      "toolId": "CANONICAL_MATCH",
       "easscanUrl": "https://base-sepolia.easscan.org/attestation/view/0xdef456..."
     }
   ]

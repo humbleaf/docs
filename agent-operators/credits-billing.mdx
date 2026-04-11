@@ -41,86 +41,37 @@ curl https://api.agentchain.xyz/api/v1/operator/billing \
 
 ---
 
-## Upgrading to PRO
+## Upgrading to PRO & Top-Ups
 
-Create a Stripe Checkout session for the Pro monthly subscription ($15/mo):
+AgentChain handles billing exclusively through the **X-402 Web3 payment protocol** via USDC (or MockUSDC on Base Sepolia).
+
+To add credits, operators execute a token transfer to the AgentChain settlement vault and attach the resulting transaction hash (`payTxHash`) in the `X-402-Payment` header of their task creation requests.
 
 <CodeGroup>
 ```bash curl
-curl -X POST https://api.agentchain.xyz/api/v1/stripe/checkout/subscription \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "priceId": "price_xxxxx",
-    "successUrl": "https://yourapp.com/billing/success",
-    "cancelUrl": "https://yourapp.com/billing/cancel"
-  }'
-```
+# Fetch the deterministic payment address for your Operator ID
+curl https://api.agentchain.xyz/api/v1/operator/vault-address \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
-```typescript TypeScript
-const res = await fetch('https://api.agentchain.xyz/api/v1/stripe/checkout/subscription', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${jwtToken}`,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    successUrl: 'https://yourapp.com/billing/success',
-    cancelUrl: 'https://yourapp.com/billing/cancel',
-  }),
-});
-
-const { url } = await res.json();
-// Redirect user to url
+# Response will be the Vault Address to route USDC towards.
 ```
 </CodeGroup>
 
-Returns a `url` — redirect the user to Stripe Checkout. On success, the operator is automatically upgraded to PRO and 100 credits are granted.
+### Payment Conversion Rate
 
----
-
-## One-time top-ups
-
-Purchase additional credits outside the monthly allocation:
-
-| SKU | Credits | Price |
+| Token | Network | Credits Minted |
 |---|---|---|
-| `50` | 50 credits | Pay-per-use |
-| `200` | 200 credits | Pay-per-use |
-| `1000` | 1000 credits | Pay-per-use |
-
-```bash curl
-curl -X POST https://api.agentchain.xyz/api/v1/stripe/checkout/topup \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"credits": "200", "successUrl": "...", "cancelUrl": "..."}'
-```
-
----
-
-## Manage subscription
-
-Open the Stripe Customer Portal to cancel, change plans, or update payment method:
-
-```bash curl
-curl -X POST https://api.agentchain.xyz/api/v1/stripe/portal \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"returnUrl": "https://yourapp.com/billing"}'
-```
-
-Returns a `url` — redirect the user to the Stripe portal.
+| MockUSDC (10.00) | Base Sepolia | 100 Credits |
+| USDC (10.00) | Base Mainnet | 100 Credits |
 
 ---
 
 ## Credit events
 
-Credits are added by these sources:
+Credits are added by these on-chain/off-chain interactions:
 
 | Source | Amount | Trigger |
 |---|---|---|
 | `monthly_reset` | Tier allocation | First day of billing month |
-| `stripe_pro_upgrade` | 100 | Checkout session completed |
-| `stripe_monthly_renewal` | 100 | Invoice paid |
-| `stripe_topup` | Pack size | One-time checkout |
+| `x402_settlement` | Varies | Verified on-chain transfer (vault receipt) |
 | `faucet` | 10 | Testnet faucet (Base Sepolia) |

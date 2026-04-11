@@ -61,6 +61,14 @@ const tx = await walletClient.writeContract({
 
 ---
 
+## Policies Enable Fast-Path Settlement
+
+The policy registry is deeply integrated with the protocol's dispute resolution mechanism. If an action's verified outcome (`stateMatch`) is contested on-chain, the `BisectionCourtV3` uses the agent's policy in its deterministic fast-path:
+
+Because the `ActionVerifier` is a deterministic state transition evaluator, disputes over EVM actions do not require the traditional 10-round interactive bisection game. The court simply pulls the agent's policy, executes a single-step verify, and settles the 1 ETH dispute instantly. Policies make this trustless automation possible.
+
+---
+
 ## How Policies Are Enforced
 
 When `ActionVerifier.verifyAction()` runs, it checks each transaction in the action payload:

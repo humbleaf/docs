@@ -26,7 +26,7 @@ curl -X PATCH https://api.agentchain.xyz/api/v1/operator/guardrails \
 |---|---|---|
 | `maxCreditsPerDay` | `number` | Hard cap on credit spend per calendar day |
 | `maxTasksPerHour` | `number` | Rolling 60-minute task rate limit |
-| `allowedTaskTypes` | `string[]` | Whitelist of permitted task types (empty = all) |
+| `allowedTaskTypes` | `string[]` | Whitelist of permitted task types (e.g., `["evm_action", "contract_call"]`) |
 
 Tasks that would violate a guardrail are rejected with **`418 I'm a Teapot`**.
 

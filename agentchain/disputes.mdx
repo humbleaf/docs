@@ -10,43 +10,37 @@ When a verification result is contested, AgentChain uses an **interactive bisect
 ## When Can a Dispute Be Opened?
 
 A dispute is opened when:
-1. The `VerificationProcessor` marks a task as `FAILED`
-2. The `DisputeBridge` pre-flight confirms the failure via `ActionVerifier.dryRunProof()`
-3. A challenger bonds **1 ETH** to `BisectionCourtV3.openDispute()`
+1. The `VerificationProcessor` marks an EVM task as `FAILED` (the effect hash claim does not match the actual execution).
+2. The `DisputeBridge` pre-flight loop confirms the mismatch using `ActionVerifier.dryRunProof()`.
+3. A challenger bonds **1 ETH** by calling `BisectionCourtV3.openDispute()`.
 
 <Warning>
-**Disputes are expensive.** The 1 ETH bond is forfeited if you lose. Only open a dispute if you have strong evidence that the verification result is incorrect.
+**Disputes are financially binding.** The 1 ETH bond is forfeited if you lose. Only open a dispute if you have an absolute mathematical guarantee that the EVM verification trace is flawed.
 </Warning>
 
 ---
 
-## How Bisection Works
+## The Deterministic Fast-Path (`resolveActionDispute`)
 
-The dispute narrows down to the exact step where the two parties disagree:
+Previously, AgentChain used a 10-round interactive bisection game modeled after optimistic rollups. For EVM Action Verification, we have collapsed this into a **2-transaction fast path**:
+
+Because `ActionVerifier` is a deterministic state transition evaluator, there is no need for prolonged back-and-forth interactivity. The court handles the mismatch in a single execution step.
 
 ```
-Round 1:  Challenger claims state diverges between steps 0-1024
-Round 2:  Narrow to steps 512-1024
-Round 3:  Narrow to steps 768-1024
-...
-Round 10: Narrow to step 997-998 (single step)
-Final:    One-step proof — ActionVerifier replays step 997→998
-          and determines who is correct
+Transaction 1: Challenger calls openDispute(taskId, stateRootClaim) with 1 ETH bond
+Transaction 2: Contract automatically enforces resolveActionDispute() against the verified policy bundle
 ```
 
-### The Protocol
+### The Fast-Path Protocol
 
 | Step | What Happens | Who Acts |
 |---|---|---|
-| 1 | Challenger calls `openDispute(taskId, stateRootClaim)` with 1 ETH bond | Challenger |
-| 2 | Defender is notified and must respond within the timeout | Defender |
-| 3-10 | Both parties reveal intermediate state roots via `selectStep()` | Both |
-| 11 | One-step proof: `resolve()` replays the single divergent step | Contract |
-| 12 | Winner receives 0.9 ETH, treasury receives 0.1 ETH | Contract |
+| 1 | Challenger calls `openDispute()` bridging 1 ETH to `BisectionCourtV3` | Challenger |
+| 2 | Revert check triggers on the underlying `ActionVerifier` | Contract |
+| 3 | Single step EVM verification determines the absolute truth | Contract |
+| 4 | Dispute is `RESOLVED_FAST`. Winner takes 0.9 ETH, 0.1 ETH routed to Treasury | Contract |
 
-### Timeout
-
-If either party fails to respond within the round timeout, they **forfeit by default**. This prevents griefing by going silent.
+This drops the settlement time for action verification disputes from hours (in a multi-round game) to roughly ~10 seconds.
 
 ---
 
@@ -54,12 +48,8 @@ If either party fails to respond within the round timeout, they **forfeit by def
 
 | Outcome | Bond | Meaning |
 |---|---|---|
-| Challenger wins | Challenger gets 0.9 ETH, treasury gets 0.1 ETH | The original verification was wrong |
-| Defender wins | Defender gets 0.9 ETH, treasury gets 0.1 ETH | The challenger's claim was invalid |
-| Timeout (challenger) | Defender gets 0.9 ETH | Challenger went silent |
-| Timeout (defender) | Challenger gets 0.9 ETH | Defender went silent |
-
----
+| Challenger wins | Challenger gets 0.9 ETH, treasury gets 0.1 ETH | The original verification was mathematically inaccurate |
+| Defender wins | Defender gets 0.9 ETH, treasury gets 0.1 ETH | The challenger's alternate state root claim was mathematically invalid |
 
 ## Pre-Flight Check
 

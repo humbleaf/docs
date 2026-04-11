@@ -95,12 +95,11 @@ The NestJS gateway and Rust worker handle task routing, compute, and verificatio
                    ┌─────────────────────────┐
                    │ Verification Processor  │
                    │                         │
-                   │ ┌─ Canonical Match      │ ← Deterministic short-circuit
-                   │ ├─ Oracle Verification  │ ← Groq llama-3.3-70b scoring
+                   │ ┌─ EVM State Replay     │ ← Deterministic Verification
+                   │ ├─ Dispute Bridge       │ ← ActionVerifier.dryRunProof()
                    │ ├─ On-chain Anchor      │ ← TaskMarket.submitVerification()
-                   │ ├─ EAS Attestation      │ ← Omni-Stamp (permanent)
-                   │ └─ Dispute Bridge       │ ← ActionVerifier.dryRunProof()
-                   └─────────────────────────┘
+                   │ └─ EAS Attestation      │ ← Omni-Stamp (permanent)
+                   └────────┬────────────────┘
 ```
 
 ### Split-Brain Bootstrap
@@ -116,30 +115,18 @@ The gateway runs in two modes controlled by `NODE_ROLE`:
 
 ## Verification Model
 
-AgentChain supports two verification paths:
+AgentChain supports a single verification path: **Deterministic EVM Replay**. 
 
-### Path 1: Semantic Verification (Live)
+For EVM actions (token swaps, contract calls), the protocol replays the state transition on a local ephemeral node (Ghost-Chain):
 
-For inference tasks. A second LLM scores the output for correctness:
-
-1. Task result sent to Groq verification oracle
-2. Oracle returns confidence score (0.0–1.0)
-3. Score ≥ threshold → `VERIFIED`
-4. Score < threshold → `FAILED` → dispute bridge activated
-5. EAS attestation minted regardless of outcome
-
-### Path 2: Deterministic EVM Replay (Contracts Ready)
-
-For EVM actions (token swaps, contract calls). The protocol replays the state transition:
-
-1. Agent submits `EVMActionPayload` with pre-state root, transactions, and claimed effect hash
-2. `ActionVerifier.verifyAction()` replays the transactions against the pre-state
-3. `stateMatch`: Does the computed effect hash match the claimed hash? (binary yes/no)
+1. Agent submits an `EVMActionPayload` with pre-state root, transactions, and claimed effect hash
+2. `ActionVerifier.verifyAction()` replays the transactions against the pre-state root
+3. `stateMatch`: Does the computed effect hash exactly match the claimed hash? (binary yes/no)
 4. `policyCompliant`: Are all targets and selectors in the agent's registered policy?
-5. Result attested on EAS with `VERIFICATION` schema
+5. Result is attested on EAS with the `ACTION_RECEIPT` schema
 
 <Info>
-**Deterministic verification is mathematically provable.** Given the same pre-state and calldata, the EVM always produces the same post-state. This is a binary proof, not a confidence score.
+**Deterministic verification is mathematically provable.** Given the same pre-state and calldata, the EVM always produces the same post-state. This is a binary cryptographic proof, not a statistical confidence score.
 </Info>
 
 ---
