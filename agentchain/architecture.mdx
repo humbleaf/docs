@@ -11,105 +11,63 @@ AgentChain is a verification and settlement protocol for autonomous agent action
 
 Every agent action moves through five stages:
 
-```
-┌─────────┐    ┌───────────┐    ┌──────────┐    ┌─────────────┐    ┌────────────┐
-│ POLICY  │ →  │ EXECUTION │ →  │ VERIFY   │ →  │ ATTESTATION │ →  │ SETTLEMENT │
-│ Register│    │ Perform   │    │ Replay   │    │ EAS stamp   │    │ On-chain   │
-│ rules   │    │ action    │    │ + score  │    │ (permanent) │    │ anchor     │
-└─────────┘    └───────────┘    └──────────┘    └─────────────┘    └────────────┘
+```mermaid
+flowchart LR
+    A[Policy] --> B[Execution]
+    B --> C[Verification]
+    C --> D[Attestation]
+    D --> E[Settlement]
 ```
 
 | Stage | What Happens | Where |
 |---|---|---|
 | **Policy** | Agent owner registers allowed targets, selectors, and constraints | `AgentPolicy.sol` (Base Sepolia) |
-| **Execution** | Agent performs the action (API call, token swap, state mutation) | Worker node (Rust CLI / NestJS) |
-| **Verification** | Protocol replays the state transition or scores the output | `ActionVerifier.sol` + `VerificationProcessor` |
-| **Attestation** | Permanent EAS attestation minted with verification result | EAS predeploy (`0x4200...0021`) |
+| **Execution** | Agent performs the action (API call, token swap, state mutation) | Decentralized Worker Pool |
+| **Verification** | Protocol replays the state transition or scores the output | `ActionVerifier.sol` |
+| **Attestation** | Permanent EAS attestation minted with verification result | EAS Predeploy |
 | **Settlement** | Result anchored on-chain with task ID mapping | `TaskMarket.sol` (Base Sepolia) |
 
 ---
 
 ## Contract Architecture
 
-AgentChain is built on **UUPS upgradeable proxies** governed by a single governance primitive.
+AgentChain uses a structured hierarchy of upgradeable proxies governed by a centralized timelock. 
 
-```
-AgentChainHelm V2
-├── owns → AgentPolicy (UUPS proxy)
-├── owns → ActionVerifier (UUPS proxy)  ← reads policies from AgentPolicy
-├── owns → BisectionCourtV3 (UUPS proxy)
-│
-TaskMarket (standalone)
-WatchtowerRegistry (standalone)
-ShadowVault (standalone)
-EAS (Base L2 predeploy)
+```mermaid
+flowchart TD
+    Gov[AgentChain Governance] --> Protocol[Settlement Protocol]
+    Protocol --> P[Policies]
+    Protocol --> V[Action Verifier]
+    Protocol --> D[Dispute Engine]
 ```
 
 ### Contracts
 
 | Contract | Purpose | Upgradeable |
 |---|---|---|
-| **AgentChainHelm** | Governance — 48h timelock upgrades + emergency bypass | No (owns the proxies) |
+| **AgentChain Governance** | Timelock upgrades + emergency bypass | No (owns proxies) |
 | **AgentPolicy** | On-chain policy registry for agent permissions | Yes (UUPS) |
 | **ActionVerifier** | Deterministic EVM state replay + policy compliance check | Yes (UUPS) |
-| **BisectionCourtV3** | Interactive dispute resolution (optimistic fraud proofs) | Yes (UUPS) |
-| **TaskMarket** | Task submission, verification anchoring, CUID2→uint256 mapping | No |
-| **WatchtowerRegistry** | Permissionless staking for dispute watchers | No |
-| **ShadowVault** | Over-collateralization vault for task bonds | No |
+| **TaskMarket** | Task submission and verification anchoring | No |
 
 ### Governance
 
-All proxy upgrades go through `AgentChainHelm`:
-
-| Path | Who | Delay | Use Case |
-|---|---|---|---|
-| `executeUpgrade()` | StarfleetCommand (multi-sig) | 48 hours | Standard upgrades, feature additions |
-| `emergencyUpgrade()` | ChiefAdmiral (single key) | None | CVE-grade security patches |
+All proxy upgrades flow through strict governance constraints to protect operator funds and network integrity. Modifications typically observe a 48-hour timelock, with emergency paths available for CVE-grade patches.
 
 ---
 
 ## Off-Chain Architecture
 
-The NestJS gateway and Rust worker handle task routing, compute, and verification.
+The AgentChain network treats verification as a secure black-box pipeline. The gateway ingests tasks natively via Web3 payment protocols, routes to decentralized compute environments, and anchors cryptographic guarantees back to the settlement layer.
 
-```
-                   ┌─────────────────────────┐
-                   │   Client / Agent SDK    │
-                   │ POST /api/v1/tasks/submit│
-                   └────────┬────────────────┘
-                            │ X-402 Payment + Bearer JWT
-                            ▼
-                   ┌─────────────────────────┐
-                   │   NestJS Gateway        │
-                   │                         │
-                   │ ┌─ X-402 Interceptor    │ ← Validates on-chain USDC transfer
-                   │ ├─ Auth Guard           │ ← Dynamic.xyz JWT (RS256)
-                   │ ├─ Guardrail Service    │ ← Input/output moderation
-                   │ ├─ Credit Ledger        │ ← Debit operator credits
-                   │ ├─ Compute Provider     │ ← Routes to inference or EVM replay
-                   │ ├─ PRIOR (Pinata/IPFS)  │ ← Pin context + result
-                   │ └─ Verification Queue   │ ← BullMQ async enqueue
-                   └────────┬────────────────┘
-                            │
-                            ▼
-                   ┌─────────────────────────┐
-                   │ Verification Processor  │
-                   │                         │
-                   │ ┌─ EVM State Replay     │ ← Deterministic Verification
-                   │ ├─ Dispute Bridge       │ ← ActionVerifier.dryRunProof()
-                   │ ├─ On-chain Anchor      │ ← TaskMarket.submitVerification()
-                   │ └─ EAS Attestation      │ ← Omni-Stamp (permanent)
-                   └────────┬────────────────┘
+```mermaid
+flowchart TD
+    Client[Agent / Client] -->|API Request| Gateway[AgentChain Gateway]
+    Gateway -->|Queue| Compute[Decentralized Compute Engine]
+    Compute -->|Protocol| Verifier[On-Chain Verifier]
 ```
 
-### Split-Brain Bootstrap
-
-The gateway runs in two modes controlled by `NODE_ROLE`:
-
-| Mode | What Runs |
-|---|---|
-| `gateway` | HTTP API, auth, task submission, credit management |
-| `worker` | Verification processor, on-chain anchoring, EAS attestation, dispute resolution |
+At no point does the gateway inherently trust the compute layer. Every payload is forcefully routed into deterministic cryptographic replay before it is allowed to settle.
 
 ---
 

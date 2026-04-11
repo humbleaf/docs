@@ -10,9 +10,9 @@ When a verification result is contested, AgentChain uses an **interactive bisect
 ## When Can a Dispute Be Opened?
 
 A dispute is opened when:
-1. The `VerificationProcessor` marks an EVM task as `FAILED` (the effect hash claim does not match the actual execution).
-2. The `DisputeBridge` pre-flight loop confirms the mismatch using `ActionVerifier.dryRunProof()`.
-3. A challenger bonds **1 ETH** by calling `BisectionCourtV3.openDispute()`.
+1. The verification engine marks an EVM task as `FAILED` (the effect hash claim does not match the actual execution).
+2. The internal pre-flight loop confirms the mismatch.
+3. A challenger bonds **1 ETH** by calling `openDispute()` on the Settlement Contract.
 
 <Warning>
 **Disputes are financially binding.** The 1 ETH bond is forfeited if you lose. Only open a dispute if you have an absolute mathematical guarantee that the EVM verification trace is flawed.
@@ -22,9 +22,7 @@ A dispute is opened when:
 
 ## The Deterministic Fast-Path (`resolveActionDispute`)
 
-Previously, AgentChain used a 10-round interactive bisection game modeled after optimistic rollups. For EVM Action Verification, we have collapsed this into a **2-transaction fast path**:
-
-Because `ActionVerifier` is a deterministic state transition evaluator, there is no need for prolonged back-and-forth interactivity. The court handles the mismatch in a single execution step.
+Because the Action Verifier is a deterministic state transition evaluator, there is no need for prolonged back-and-forth interactivity (e.g. Optimistic Bisection). The court handles the mismatch in a single execution step.
 
 ```
 Transaction 1: Challenger calls openDispute(taskId, stateRootClaim) with 1 ETH bond
@@ -35,8 +33,8 @@ Transaction 2: Contract automatically enforces resolveActionDispute() against th
 
 | Step | What Happens | Who Acts |
 |---|---|---|
-| 1 | Challenger calls `openDispute()` bridging 1 ETH to `BisectionCourtV3` | Challenger |
-| 2 | Revert check triggers on the underlying `ActionVerifier` | Contract |
+| 1 | Challenger calls `openDispute()` bridging 1 ETH to the Settlement Contract | Challenger |
+| 2 | Revert check triggers on the underlying Action Verifier | Contract |
 | 3 | Single step EVM verification determines the absolute truth | Contract |
 | 4 | Dispute is `RESOLVED_FAST`. Winner takes 0.9 ETH, 0.1 ETH routed to Treasury | Contract |
 
@@ -51,34 +49,15 @@ This drops the settlement time for action verification disputes from hours (in a
 | Challenger wins | Challenger gets 0.9 ETH, treasury gets 0.1 ETH | The original verification was mathematically inaccurate |
 | Defender wins | Defender gets 0.9 ETH, treasury gets 0.1 ETH | The challenger's alternate state root claim was mathematically invalid |
 
-## Pre-Flight Check
-
-Before opening a dispute, the `DisputeBridge` runs a pre-flight dry run:
-
-```typescript
-// Pre-flight: verify the claim before risking 1 ETH
-const dryResult = await actionVerifier.verifyAction(
-  actionId, agentId, preStateRoot, transactions, effectClaimHash
-);
-
-if (!dryResult.stateMatch) {
-  // Valid dispute — proceed to openDispute()
-} else {
-  // Dispute would fail — don't waste the bond
-}
-```
-
-This prevents trivially invalid disputes from wasting gas and bonds.
-
 ---
 
 ## Watchtower Integration
 
-**Watchtowers** are permissionless observers that monitor the network for incorrect verifications. Any address can register as a watchtower by staking ETH in the `WatchtowerRegistry`:
+**Watchtowers** are permissionless observers that monitor the network for incorrect verifications. Any address can register as a watchtower by staking ETH in the Watchtower Registry:
 
 ```bash
-# Register as a watchtower (0.01 ETH minimum stake)
-cast send 0x4E0C353e26fBC9aB5fe5bb7A5195e3cC1ae35773 \
+# Example Watchtower Registration (requires 0.01 ETH minimum stake)
+cast send $WATCHTOWER_REGISTRY \
   "registerWatchtower()" \
   --value 0.01ether \
   --rpc-url https://sepolia.base.org \
@@ -86,17 +65,3 @@ cast send 0x4E0C353e26fBC9aB5fe5bb7A5195e3cC1ae35773 \
 ```
 
 Watchtowers earn a portion of the dispute bond when they successfully challenge an invalid verification.
-
----
-
-## Contract Details
-
-| Property | Value |
-|---|---|
-| BisectionCourtV3 | `0xe6a487e32dcea696536b42326b904e77adb221be` (UUPS proxy) |
-| WatchtowerRegistry | `0x4E0C353e26fBC9aB5fe5bb7A5195e3cC1ae35773` |
-| Bond | 1 ETH (dispute opener) |
-| Rounds | 10 (bisection steps) |
-| Treasury cut | 10% of bond |
-| Network | Base Sepolia (84532) |
-| Owner | AgentChainHelm V2 (`0x4f98...485e`) |
