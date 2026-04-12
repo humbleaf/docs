@@ -18,7 +18,7 @@ curl -X PATCH https://api.agentchain.xyz/api/v1/operator/guardrails \
   -d '{
     "maxCreditsPerDay": 20,
     "maxTasksPerHour": 10,
-    "allowedTaskTypes": ["inference", "summary"]
+    "allowedTaskTypes": ["evm_action", "spend_control", "deploy_actions"]
   }'
 ```
 
@@ -26,7 +26,11 @@ curl -X PATCH https://api.agentchain.xyz/api/v1/operator/guardrails \
 |---|---|---|
 | `maxCreditsPerDay` | `number` | Hard cap on credit spend per calendar day |
 | `maxTasksPerHour` | `number` | Rolling 60-minute task rate limit |
-| `allowedTaskTypes` | `string[]` | Whitelist of permitted task types (e.g., `["evm_action", "contract_call"]`) |
+| `allowedTaskTypes` | `string[]` | Whitelist of permitted task types (e.g., `["evm_action", "spend_control", "deploy_actions"]`) |
+
+<Info>
+**Available task types:** `evm_action`, `spend_control`, `deploy_actions`, `external_comms`, `data_analysis`, `content_publication`. Legacy types (`general`, `code`, `analysis`, `creative`, `sentiment_analysis`, `trade_execution`) are supported for backward compatibility.
+</Info>
 
 Tasks that would violate a guardrail are rejected with **`418 I'm a Teapot`**.
 
@@ -42,6 +46,39 @@ Using 418 makes the failure mode unambiguous — an agent receiving 418 knows im
 
 The response body includes the `receipt` object and a `reason` string identifying whether it was an input guardrail violation or an output policy block.
 
+---
+
+## Approval thresholds
+
+Actions that exceed a value threshold require human approval before the pipeline continues. No value moves until an operator explicitly approves.
+
+```bash curl
+curl -X PATCH https://api.agentchain.xyz/api/v1/operator/guardrails \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "approvalThreshold": 5000,
+    "approvalTtlHours": 24,
+    "approvalWebhookUrl": "https://your-app.com/webhooks/approvals"
+  }'
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `approvalThreshold` | `number` | Actions above this amount require approval (default: disabled) |
+| `approvalTtlHours` | `number` | Hours before unresolved approvals auto-expire (default: 24) |
+| `approvalWebhookUrl` | `string` | URL to receive webhook notifications on approval events |
+| `approvalWebhookSecret` | `string` | HMAC secret for webhook verification (auto-derived if omitted) |
+| `approvalAutoRules` | `array` | Rules for automatic approval (amount caps, allowlists, business hours) |
+
+When a held action lands in the queue, operators can resolve it from:
+- The **[Approval Queue](/agentchain/approval-queue)** in the dashboard
+- The **REST API** using an API key (`PATCH /api/v1/approvals/:id`)
+- The **SDK** via `client.resolveApproval()`
+
+<Info>
+For the full approval queue documentation — including webhooks, auto-approve rules, and framework integration — see **[Approval Queue](/agentchain/approval-queue)**.
+</Info>
 
 ---
 

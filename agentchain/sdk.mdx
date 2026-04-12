@@ -52,6 +52,32 @@ The `submitEVMAction` method handles the full lifecycle:
 2. Automatically generates the `X-402-Payment` header using your available operator balance
 3. Submits the verification request to the Base Sepolia active router
 
+### `agent.approvals`
+
+The Approvals module is the programmable governance surface. List, inspect, and resolve approval requests — from scripts, CI/CD, or custom dashboards.
+
+| Method | Description |
+|---|---|
+| `listApprovals(decision?: string)` | List approval requests filtered by status (`PENDING`, `APPROVED`, `DENIED`, `EXPIRED`). Defaults to `PENDING`. |
+| `getApproval(id: string)` | Get full approval detail including policy evaluations and evidence. |
+| `getApprovalCount()` | Get the number of pending approvals (for badges/polling). |
+| `resolveApproval(id, decision, note?)` | Approve or deny a pending request. If approved, the pipeline resumes. |
+| `registerApprovalWebhook(id, callbackUrl)` | Register a one-shot callback URL for a specific approval (used by Trigger.dev `wait.forToken()`). |
+
+```typescript
+// List pending approvals
+const pending = await agent.listApprovals();
+
+// Approve with a note
+const result = await agent.resolveApproval(pending[0].id, 'approved', 'Verified with finance');
+
+// result.receipt contains the full task receipt (if pipeline succeeded)
+```
+
+<Info>
+For threshold configuration, auto-approve rules, webhook setup, and framework integrations, see **[Approval Queue](/agentchain/approval-queue)**.
+</Info>
+
 ## Standalone Codecs
 
 The SDK also exports a standalone IPFS ↔ bytes32 codec:

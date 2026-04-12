@@ -3,7 +3,7 @@ title: "MPC Worker Nodes"
 description: "Run a Multi-Party Computation worker node to execute and attest verifiable actions on the AgentChain network."
 ---
 
-MPC Worker Nodes are the compute backbone of the AgentChain settlement layer. Each node polls the gateway for pending intents, executes the computation, anchors a cryptographic proof to IPFS, and reports the result back with an EIP-191 attestation signature.
+MPC Worker Nodes are the compute backbone of the AgentChain settlement layer. Each node polls the gateway for pending intents, executes deterministic EVM action replays, anchors a cryptographic action receipt to IPFS, and reports the result back with an EIP-191 attestation signature.
 
 ## Architecture
 
@@ -12,15 +12,17 @@ sequenceDiagram
     participant G as Gateway
     participant Q as Intent Queue
     participant W as MPC Worker
+    participant E as EVM Replay Engine
     participant I as IPFS (PRIOR)
     participant C as TaskMarket (Base)
 
     G->>Q: Enqueue signed intent
     W->>Q: Poll for pending tasks
     Q-->>W: Return oldest intent
-    W->>C: createFromSignedIntent()
-    W->>C: claimTask() + submitResult()
-    W->>I: Anchor compute proof
+    W->>E: Replay EVM action against pre-state root
+    E-->>W: Return stateRoot (effectClaimHash)
+    W->>C: claimTask() + submitResult(stateRoot)
+    W->>I: Anchor action receipt
     W->>G: POST /v1/intent/report (EIP-191 attested)
     G->>G: Verify attestation, create Task record
     G->>G: Enqueue verification pipeline
@@ -35,16 +37,32 @@ Each MPC worker operates a continuous poll loop with four phases:
     The worker calls `GET /v1/intent/tasks/pending` to fetch the oldest pending intent from the gateway's BullMQ queue.
     The endpoint requires admin-level authentication.
   </Step>
-  <Step title="Compute">
-    The worker fetches the intent payload from IPFS using the `payloadCid`, executes the EVM action replay, and produces a deterministic `stateRoot` hash of the output.
+  <Step title="Replay">
+    The worker fetches the intent payload from IPFS using the `payloadCid`. For `evm_action` tasks, the worker replays the declared transactions against the provided `preStateRootRaw` using the EVM replay engine. The output is a deterministic `stateRoot` — the hash of the post-execution state. For non-EVM tasks, the worker executes the action using the configured compute provider (Groq, Together, Ollama).
   </Step>
   <Step title="Anchor">
-    The compute proof (including `stateRoot`, `onChainTaskId`, and shard metadata) is uploaded to IPFS via `POST /v1/prior/claim`, producing a content-addressed CID.
+    The action receipt (including `stateRoot`, `onChainTaskId`, and shard metadata) is uploaded to IPFS via `POST /v1/prior/claim`, producing a content-addressed CID.
   </Step>
   <Step title="Report">
     The worker closes the loop by calling `POST /v1/intent/report` with the `payloadCid`, `onChainTaskId`, `stateRoot`, and an EIP-191 attestation signature. The gateway recovers the worker's address from the signature and creates a Task record in the database.
   </Step>
 </Steps>
+
+## EVM Action Replay
+
+For deterministic EVM action verification, the worker:
+
+1. **Reads** the `preStateRootRaw` and `transactions[]` from the intent payload
+2. **Replays** each transaction against the state root using a local EVM simulation (Anvil fork or native replay)
+3. **Computes** the `effectClaimHash` = `keccak256(chainId ++ postStateRoot ++ encodedEffects)`
+4. **Compares** the computed hash against the claimed `effectClaimHash` from the intent
+5. **Reports** `stateMatch: true/false` — the deterministic binary verdict
+
+The `chainId` is included in the effect hash to prevent cross-chain replay attacks (IC-10).
+
+<Info>
+**Deterministic verification:** Because the EVM is a deterministic state machine, two independent workers replaying the same transactions against the same pre-state root will always produce the same `effectClaimHash`. This is what enables fast-path dispute resolution — no multi-round bisection needed.
+</Info>
 
 ## EIP-191 Attestation
 
@@ -66,6 +84,7 @@ The gateway recovers the signer address and verifies it matches the claimed `wor
 | `ADMIN_TOKEN` | Yes | Bearer token for gateway admin endpoints |
 | `WORKER_PRIVATE_KEY` | Production | secp256k1 private key (hex, with or without `0x` prefix) |
 | `MPC_NODE_ID` | No | Human-readable node identifier (default: `mpc-node-alpha`) |
+| `GHOST_CHAIN_RPC` | No | RPC URL for local Anvil instance used in EVM replay (default: `http://localhost:8545`) |
 
 <Warning>
   The `WORKER_PRIVATE_KEY` controls the worker's on-chain identity. In production, use hardware security modules (HSM) or cloud KMS instead of raw environment variables.
@@ -80,7 +99,7 @@ The MPC worker consumes two gateway endpoints:
     `GET /v1/intent/tasks/pending` — Pop the oldest intent from the queue.
   </Card>
   <Card title="Upload to PRIOR" icon="cloud-arrow-up" href="/api-reference/prior/upload-context-payload-or-json-to-prior-ipfs">
-    `POST /v1/prior/claim` — Anchor compute proofs to IPFS.
+    `POST /v1/prior/claim` — Anchor action receipts to IPFS.
   </Card>
 </CardGroup>
 
@@ -100,11 +119,14 @@ cargo run --release
 
 ## On-Chain Settlement
 
-After computation, the worker interacts with `TaskMarket.sol` on Base:
+After action replay and verification, the worker interacts with `TaskMarket.sol` on Base to settle the task on-chain:
 
-1. **`createFromSignedIntent()`** — Creates a task on-chain from the gateway's EIP-712 signed intent
-2. **`claimTask()`** — Locks the worker's USDC collateral bond
-3. **`submitResult()`** — Submits the deterministic `stateRoot` on-chain
-4. **`resolveTask()`** — After the challenge window expires, the worker receives their bounty minus the protocol fee
+1. **`claimTask()`** — Locks the worker's USDC collateral bond
+2. **`submitResult(stateRoot)`** — Submits the deterministic `effectClaimHash` on-chain
+3. **`resolveTask()`** — After the challenge window expires, the worker receives their bounty minus the protocol fee
 
-If a dispute is raised during the challenge window, the task enters the BisectionCourt for interactive verification.
+If a dispute is raised during the challenge window, the task enters the `BisectionCourtV3` for deterministic fast-path resolution. For EVM actions, the court resolves the dispute in a single step (~10 seconds) rather than using the traditional multi-round bisection game.
+
+<Info>
+**Protocol fee schedule:** Fees are tiered based on the action value — from 25% for micro-actions (<$100) down to 0.25% for whale-tier actions (>$100K). See [Credits & Billing](/agent-operators/credits-billing) for the full schedule.
+</Info>

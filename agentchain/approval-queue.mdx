@@ -13,17 +13,17 @@ No value moves until a human says so.
 
 ```mermaid
 flowchart TD
-    A["Agent submits action\n(SDK / Trigger.dev / ElizaOS)"] --> B["Gateway evaluates policy\n(Stage 1.5c)"]
-    B -->|Below threshold| C["Pipeline continues\n(stages 2–8)"]
+    A["Agent submits action<br/>(SDK / Trigger.dev / ElizaOS)"] --> B["Gateway evaluates policy<br/>(Stage 1.5c)"]
+    B -->|Below threshold| C["Pipeline continues<br/>(stages 2–8)"]
     C --> D["✅ Receipt issued"]
     B -->|Above threshold| E["PENDING_APPROVAL"]
-    E --> F{"Auto-approve\nrules pass?"}
+    E --> F{"Auto-approve<br/>rules pass?"}
     F -->|Yes| G["Auto-release"]
     G --> C
     F -->|No| H["Queue for human review"]
-    H --> I["Operator resolves\n(Dashboard / API / Webhook)"]
+    H --> I["Operator resolves<br/>(Dashboard / API / Webhook)"]
     I -->|Approved| C
-    I -->|Denied| J["❌ Task FAILED\nNo settlement consumed"]
+    I -->|Denied| J["❌ Task FAILED<br/>No settlement consumed"]
 
     style A fill:#065f46,stroke:#10b981,color:#fff
     style D fill:#065f46,stroke:#10b981,color:#fff
