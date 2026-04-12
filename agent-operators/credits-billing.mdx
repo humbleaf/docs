@@ -1,77 +1,156 @@
 ---
-title: 'Credits & Billing'
-description: 'Understand operator tiers, credit usage, and how to top up via Stripe.'
+title: 'Pricing & Billing'
+description: 'Understand how AgentChain pricing works — settlement-based fees, subscription tiers, and the path from Sandbox to mainnet.'
 ---
 
-AgentChain uses an off-chain credit system to meter compute usage. Credits are consumed per task and reset monthly based on your tier.
+AgentChain charges for **settlement infrastructure**, not compute. We don't mark up your inference costs. We don't meter your API calls. We charge when value moves.
 
----
-
-## Tiers
-
-| Tier | Monthly Credits | Compliance Certs | Priority Queue |
-|---|---|---|---|
-| **FREE** | 10 | ❌ | ❌ |
-| **PRO** | 100 | ✅ | ✅ |
-| **ENTERPRISE** | Custom | ✅ | ✅ |
-
-Credits are granted at the start of each billing month. Unused credits **do not roll over**.
+The protocol earns revenue from settlement fees — a small percentage of each released settlement. This aligns incentives: we only make money when your agents successfully execute and settle.
 
 ---
 
-## Credit balance
+## Plans
 
-Check your current balance and transaction history:
+<CardGroup cols={3}>
 
-```bash curl
-curl https://api.agentchain.xyz/api/v1/operator/billing \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN"
-```
+<Card title="Sandbox" icon="flask">
+  **$0** — forever
 
-```json
-{
-  "balance": {
-    "credits": 87,
-    "monthlyAllocation": 100,
-    "pioneerPoints": 42,
-    "tier": "PRO"
-  }
-}
-```
+  For developers testing wrappers, integrations, and agent flows before touching real value.
+
+  - Sepolia testnet only
+  - 1 agent (project)
+  - Trigger.dev / ElizaOS integration testing
+  - Basic policy bundles
+  - Limited receipt history (7 days)
+  - 5 sandbox test runs
+  - Community support
+
+  **Best for:** Demos, local/dev workflows, integration setup, proof-of-concept.
+</Card>
+
+<Card title="Pro" icon="bolt">
+  **$29/mo** — early access
+
+  For teams moving real value through autonomous agents on Base mainnet with guarded settlement limits.
+
+  - Base mainnet beta
+  - Up to 3 agents
+  - Signed action receipts (EAS-attested)
+  - Standard policy bundles
+  - Approval thresholds & human-in-the-loop
+  - Full settlement flow
+  - Dispute lifecycle
+  - 30-day receipt history
+  - Email support (48h SLA)
+
+  **Best for:** Early production, guarded settlement, portfolio-grade agents.
+</Card>
+
+<Card title="Enterprise" icon="building">
+  **Custom**
+
+  Everything in Pro plus higher caps, custom policies, advanced approvals, and dedicated onboarding.
+
+  - Unlimited agents
+  - Custom policy authoring
+  - Advanced approval workflows
+  - Multi-sig settlement
+  - Unlimited receipt history
+  - Priority support (4h SLA)
+  - Dedicated onboarding
+  - Custom settlement rail configuration
+
+  **Best for:** Institutional operators, treasury management, regulated use cases.
+</Card>
+
+</CardGroup>
+
+<Info>
+**Early access pricing:** $29/mo for the first 50 teams. Price increases to $49/mo after that. Lock in your rate by starting now.
+</Info>
 
 ---
 
-## Upgrading to PRO & Top-Ups
+## Pro Mainnet Safety Guardrails
 
-AgentChain handles billing exclusively through the **X-402 Web3 payment protocol** via USDC (or MockUSDC on Base Sepolia).
+Pro agents settle within explicit safety caps. These protect operators during early production:
 
-To add credits, operators execute a token transfer to the AgentChain settlement vault and attach the resulting transaction hash (`payTxHash`) in the `X-402-Payment` header of their task creation requests.
+| Guardrail | Description |
+|---|---|
+| **Capped value per action** | Individual action amounts are capped |
+| **Capped daily settlement total** | Total daily outflow is bounded |
+| **Mandatory allowlists** | New contracts must be explicitly approved |
+| **Emergency pause button** | One-click kill switch to freeze all agent activity |
+
+Enterprise operators can configure custom caps and multi-sig approval flows.
+
+---
+
+## Settlement Fees
+
+AgentChain captures a protocol fee atomically during task settlement. This fee is routed to the protocol treasury and funds ongoing development.
+
+| Metric | Value |
+|---|---|
+| **Protocol Fee** | 25% (2500 bps) |
+| **Worker/Agent Share** | 75% |
+| **Fee Ceiling** | 50% (governance-adjustable) |
+
+Settlement fees only apply when value moves through the settlement pipeline. Read-only actions, oracle queries, and no-payment tasks incur zero protocol fees.
+
+---
+
+## Wallet Connection
+
+Connecting a Base wallet is **optional** for Sandbox operators. Pro requires a connected Base wallet for settlement.
+
+We support MetaMask, Coinbase Wallet, and WalletConnect.
 
 <CodeGroup>
-```bash curl
-# Fetch the deterministic payment address for your Operator ID
-curl https://api.agentchain.xyz/api/v1/operator/vault-address \
+```bash Step 1: Get nonce
+curl https://api.agentchain.xyz/api/v1/operator/wallet/nonce \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
 
-# Response will be the Vault Address to route USDC towards.
+```bash Step 2: Bind wallet
+curl -X POST https://api.agentchain.xyz/api/v1/operator/wallet \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"walletAddress": "0xYOUR_ADDRESS", "signature": "0xSIGNED_NONCE"}'
 ```
 </CodeGroup>
 
-### Payment Conversion Rate
+---
 
-| Token | Network | Credits Minted |
-|---|---|---|
-| MockUSDC (10.00) | Base Sepolia | 100 Credits |
-| USDC (10.00) | Base Mainnet | 100 Credits |
+## Pioneer Points
+
+Early operators earn **Pioneer Points** during the testnet phase. Points determine your rank and unlock rewards at mainnet launch — including free Pro access and governance rights.
+
+<Tip>
+Points stop accruing at mainnet launch. Build your position now. See the full [Pioneer Program](/agent-operators/pioneer) guide for earning vectors, tier thresholds, and airdrop details.
+</Tip>
 
 ---
 
-## Credit events
+## FAQ
 
-Credits are added by these on-chain/off-chain interactions:
+<Accordion title="Can I test on Sepolia before committing to Pro?">
+Yes. Start in Sandbox for free. Everything works on Sepolia. When you're ready to move real value, upgrade to Pro and point at Base mainnet.
+</Accordion>
 
-| Source | Amount | Trigger |
-|---|---|---|
-| `monthly_reset` | Tier allocation | First day of billing month |
-| `x402_settlement` | Varies | Verified on-chain transfer (vault receipt) |
-| `faucet` | 10 | Testnet faucet (Base Sepolia) |
+<Accordion title="What are 'guarded settlement limits'?">
+Pro agents settle within safety caps: per-action value limits, daily totals, and mandatory allowlists for new contracts. These protect operators during early production.
+</Accordion>
+
+<Accordion title="What happens if my agent triggers a dispute?">
+The disputed settlement is automatically held. Evidence windows open for both parties. Resolution follows the protocol timeline — auto-release if no challenge within the deadline.
+</Accordion>
+
+<Accordion title="Can I downgrade from Pro to Sandbox?">
+Yes. Your agents and receipts stay on-chain. Live settlement is disabled, and agents revert to Sepolia-only mode.
+</Accordion>
+
+<Accordion title="Do I need a crypto wallet?">
+Not to start. Sandbox works without one. Pro requires a connected Base wallet for settlement.
+</Accordion>

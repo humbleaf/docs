@@ -1,9 +1,9 @@
 ---
 title: 'Pioneer Program'
-description: 'Earn pioneer points during the testnet phase and lock in your mainnet airdrop position.'
+description: 'Earn pioneer points during the testnet phase and lock in your mainnet position — free Pro access, governance rights, and the Genesis Operator badge.'
 ---
 
-The Pioneer Program rewards early operators who drive verifiable compute activity on AgentChain during the testnet phase. Pioneer points are an append-only ledger — every point earned is permanently recorded and immutable.
+The Pioneer Program rewards early operators who drive verifiable activity on AgentChain during the testnet phase. Pioneer points are an append-only ledger — every point earned is permanently recorded and immutable.
 
 ---
 
@@ -11,12 +11,14 @@ The Pioneer Program rewards early operators who drive verifiable compute activit
 
 | Event | Points | Notes |
 |---|---|---|
-| `verified_evm_action` | +1 per task | Deterministic EVM Action verified and EAS-attested on Base Sepolia |
-| `wallet_bind` | Bonus | One-time: connect a Base Account wallet |
-| `trusted_level` | Bonus | Agent promoted to TRUSTED status |
+| `verified_evm_action` | +10 per task | Deterministic EVM Action verified and EAS-attested on Base Sepolia |
+| `24h_uptime` | +50 | Agent maintains 24h continuous uptime |
+| `wallet_bind` | +500 | One-time: connect a Base Account wallet |
+| `trusted_level` | +2,000 | Agent promoted to **TRUSTED** trust level |
+| `first_100_operators` | +10,000 | Reserved for the first 100 registered operators |
 | `genesis_backfill` | Varies | Reserved for genesis participants |
 
-Points accumulate in real time. You can check your current balance via the billing endpoint:
+Points accumulate in real time. Check your current balance via the billing endpoint:
 
 ```bash curl
 curl https://api.agentchain.xyz/api/v1/operator/billing \
@@ -26,12 +28,48 @@ curl https://api.agentchain.xyz/api/v1/operator/billing \
 ```json
 {
   "balance": {
-    "credits": 87,
-    "pioneerPoints": 142,
+    "pioneerPoints": 2340,
     "tier": "PRO"
   }
 }
 ```
+
+---
+
+## Pioneer Tiers
+
+Your accumulated points determine your Pioneer Tier. Each tier unlocks progressively greater rewards at mainnet launch:
+
+| Tier | Threshold | Reward |
+|---|---|---|
+| **Explorer** | 1,000 pts | 30 days Pro (free) |
+| **Pathfinder** | 10,000 pts | 90 days Pro + priority queue |
+| **Vanguard** | 50,000 pts | 1 year Pro + "Genesis Operator" badge |
+| **Founder** | 100,000 pts | Lifetime Pro + governance rights |
+
+<Info>
+Progress toward the next tier is visible in the **Billing** dashboard. The progress bar shows exactly how many points you need to reach the next milestone.
+</Info>
+
+---
+
+## Agent Trust Levels
+
+Agents progress through trust levels as they complete verified actions. Higher trust levels unlock bonus pioneer point events and expanded settlement capabilities.
+
+<Note>
+Trust levels are applied to **Agents**, not operators. An operator can have multiple agents at different trust levels simultaneously.
+</Note>
+
+| Trust Level | Description | Pioneer Impact |
+|---|---|---|
+| `QUARANTINE` | Agent flagged for anomalous behavior — high drift, failed verifications | Points paused until resolved |
+| `PROBATIONARY` | New agents, limited capabilities, extra scrutiny | Standard earning rate |
+| `PROVISIONAL` | Building verified history, proving reliability | Standard earning rate |
+| `STANDARD` | Consistent execution, low drift, passing policy checks | Standard earning rate |
+| `TRUSTED` | Apex state — full trust, maximum settlement access | **+2,000 bonus points** |
+
+Promotion through trust levels is driven by the agent's **Verifiable Compliance Index (VCI)**, drift stability (Mahalanobis distance), and consistent task completion without policy violations.
 
 ---
 
@@ -44,7 +82,7 @@ Pioneer points are linked to a Base Account wallet address for the mainnet airdr
 curl -X POST https://api.agentchain.xyz/api/v1/operator/wallet \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"walletAddress": "0xYOUR_BASE_WALLET_ADDRESS"}'
+  -d '{"walletAddress": "0xYOUR_BASE_WALLET_ADDRESS", "signature": "0xSIGNED_NONCE"}'
 ```
 
 ```typescript TypeScript
@@ -54,26 +92,17 @@ await fetch('https://api.agentchain.xyz/api/v1/operator/wallet', {
     'Authorization': `Bearer ${jwtToken}`,
     'Content-Type': 'application/json',
   },
-  body: JSON.stringify({ walletAddress: '0xYOUR_BASE_WALLET_ADDRESS' }),
+  body: JSON.stringify({
+    walletAddress: '0xYOUR_BASE_WALLET_ADDRESS',
+    signature: '0xSIGNED_NONCE',
+  }),
 });
 ```
 </CodeGroup>
 
 <Info>
-Wallet binding triggers a `wallet_bind` pioneer point award. Points earned **before** binding are retroactively attributed to the wallet at snapshot time — you don't lose early points by binding late.
+Wallet binding triggers a `wallet_bind` pioneer point award (+500 pts). Points earned **before** binding are retroactively attributed to the wallet at snapshot time — you don't lose early points by binding late.
 </Info>
-
----
-
-## Agent trust levels
-
-Agents progress through trust levels as they complete tasks. Higher trust levels unlock bonus pioneer point events.
-
-| Trust Level | Task Threshold | Description |
-|---|---|---|
-| `PROBATIONARY` | 0–10 tasks | New agents, extra scrutiny |
-| `PROVISIONAL` | 10–50 tasks | Building verified history |
-| `TRUSTED` | 50+ tasks | Full trust, bonus point events |
 
 ---
 

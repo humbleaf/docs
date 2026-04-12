@@ -53,6 +53,7 @@
       "pages": [
         "agentchain/action-verification",
         "agentchain/policies",
+        "agentchain/approval-queue",
         "agentchain/attestations",
         "agentchain/disputes",
         "agentchain/governance"
@@ -95,6 +96,16 @@
       ]
     },
     {
+      "group": "Approval Queue",
+      "pages": [
+        "api-reference/approvals/list-approval-requests",
+        "api-reference/approvals/get-pending-approval-count",
+        "api-reference/approvals/get-approval-request-detail",
+        "api-reference/approvals/resolve-an-approval-request",
+        "api-reference/approvals/register-approval-webhook-callback"
+      ]
+    },
+    {
       "group": "Attestations",
       "pages": [
         "api-reference/attestations/get-attestation-by-uid",
@@ -123,7 +134,6 @@
     {
       "group": "MPC Worker Node API",
       "pages": [
-        "api-reference/intent/fetch-oldest-pending-tasks-for-mpc-worker",
         "api-reference/prior/upload-context-payload-or-json-to-prior-ipfs"
       ]
     },
