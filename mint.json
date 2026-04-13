@@ -176,12 +176,12 @@
   "anchors": [
     {
       "name": "GitHub",
-      "url": "https://github.com/humbleaf/AgentChain",
+      "url": "https://github.com/humbleaf/agentchain-sdk",
       "icon": "github"
     },
     {
       "name": "Explorer UI",
-      "url": "https://agentchain.xyz",
+      "url": "https://www.agentchain.xyz/#demo",
       "icon": "globe"
     }
   ],
