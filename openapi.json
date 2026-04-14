@@ -110,7 +110,7 @@
             "name": "operatorId",
             "required": true,
             "in": "path",
-            "description": "Operator ID \u2014 must match authenticated session",
+            "description": "Operator ID — must match authenticated session",
             "schema": {
               "type": "string"
             }
@@ -161,7 +161,7 @@
     "/api/v1/operator/kill-switch": {
       "patch": {
         "operationId": "AuthController_setKillSwitch",
-        "summary": "Persist kill-switch state (G3 fix \u2014 was local state only)",
+        "summary": "Persist kill-switch state (G3 fix — was local state only)",
         "parameters": [],
         "responses": {
           "200": {
@@ -199,7 +199,7 @@
       },
       "patch": {
         "operationId": "AuthController_setGuardrails",
-        "summary": "Queue guardrail config update \u2014 30s activation delay, 10s write rate limit",
+        "summary": "Queue guardrail config update — 30s activation delay, 10s write rate limit",
         "parameters": [],
         "responses": {
           "200": {
@@ -219,7 +219,7 @@
     "/api/v1/operator/export": {
       "get": {
         "operationId": "AuthController_exportData",
-        "summary": "Export all operator data as JSON (G4 \u2014 data portability)",
+        "summary": "Export all operator data as JSON (G4 — data portability)",
         "parameters": [],
         "responses": {
           "200": {
@@ -702,7 +702,7 @@
     "/api/v1/public/agent/{agentId}/passport": {
       "get": {
         "operationId": "PublicController_getPassport",
-        "summary": "Agent Passport \u2014 public identity, trust, and x402 block status",
+        "summary": "Agent Passport — public identity, trust, and x402 block status",
         "parameters": [
           {
             "name": "agentId",
@@ -967,7 +967,7 @@
                   },
                   "modelCid": {
                     "type": "string",
-                    "description": "EPIC 9.3 Fat Intent: Ollama model tag (e.g. \"gemma3:12b\"). Optional \u2014 worker falls back to OLLAMA_MODEL env var."
+                    "description": "EPIC 9.3 Fat Intent: Ollama model tag (e.g. \"gemma3:12b\"). Optional — worker falls back to OLLAMA_MODEL env var."
                   }
                 },
                 "required": [
@@ -1010,6 +1010,33 @@
           },
           "204": {
             "description": "No pending intents"
+          }
+        },
+        "tags": [
+          "intent"
+        ]
+      }
+    },
+    "/v1/intent/task/{cid}": {
+      "get": {
+        "operationId": "IntentController_getTaskByCid",
+        "summary": "Fetch signed intent metadata by IPFS CID (on-chain listener mode)",
+        "parameters": [
+          {
+            "name": "cid",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Signed intent descriptor returned"
+          },
+          "404": {
+            "description": "No intent found for this CID"
           }
         },
         "tags": [
@@ -1279,7 +1306,7 @@
       "post": {
         "operationId": "TaskController_submitTask",
         "summary": "Submit a task for execution",
-        "description": "Full 8-stage pipeline: guardrail \u2192 credit \u2192 compute \u2192 verify \u2192 anchor \u2192 receipt",
+        "description": "Full 8-stage pipeline: guardrail → credit → compute → verify → anchor → receipt",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1331,7 +1358,7 @@
                     "properties": {
                       "actionId": {
                         "type": "string",
-                        "description": "bytes32 hex \u2014 unique action identifier"
+                        "description": "bytes32 hex — unique action identifier"
                       },
                       "agentId": {
                         "type": "string",
@@ -1339,7 +1366,7 @@
                       },
                       "preStateRoot": {
                         "type": "string",
-                        "description": "bytes32 hex \u2014 EVM state root before action"
+                        "description": "bytes32 hex — EVM state root before action"
                       },
                       "transactions": {
                         "type": "array",
@@ -1367,7 +1394,7 @@
                       },
                       "effectClaimHash": {
                         "type": "string",
-                        "description": "bytes32 hex \u2014 claimed effect hash"
+                        "description": "bytes32 hex — claimed effect hash"
                       }
                     }
                   }
@@ -1378,7 +1405,7 @@
         },
         "responses": {
           "200": {
-            "description": "Task executed \u2014 provenance receipt returned",
+            "description": "Task executed — provenance receipt returned",
             "content": {
               "application/json": {
                 "schema": {
@@ -1456,13 +1483,374 @@
             "description": "Missing or invalid JWT"
           },
           "418": {
-            "description": "Guardrail or output policy blocked this task. Your operator config is the wall \u2014 check maxCreditsPerDay, maxTasksPerHour, or allowedTaskTypes."
+            "description": "Guardrail or output policy blocked this task. Your operator config is the wall — check maxCreditsPerDay, maxTasksPerHour, or allowedTaskTypes."
           }
         },
         "tags": [
           "tasks"
         ],
         "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/approvals": {
+      "get": {
+        "operationId": "ApprovalController_list",
+        "summary": "List approval requests",
+        "description": "Returns pending approval requests for the authenticated operator. Filter by decision status (PENDING, APPROVED, DENIED, EXPIRED). Defaults to PENDING. Auto-expires stale approvals past their TTL.",
+        "parameters": [
+          {
+            "name": "decision",
+            "required": false,
+            "in": "query",
+            "description": "Filter by decision status: PENDING, APPROVED, DENIED, EXPIRED (default: PENDING)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of approval requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "Approval request ID"
+                      },
+                      "taskId": {
+                        "type": "string",
+                        "description": "Associated task ID"
+                      },
+                      "agentId": {
+                        "type": "string",
+                        "description": "Agent that submitted the action"
+                      },
+                      "actionType": {
+                        "type": "string",
+                        "example": "spend_control"
+                      },
+                      "operation": {
+                        "type": "string",
+                        "example": "invoice_payment"
+                      },
+                      "target": {
+                        "type": "string",
+                        "description": "Counterparty or resource"
+                      },
+                      "requestedValue": {
+                        "type": "number",
+                        "example": 12000,
+                        "nullable": true
+                      },
+                      "currency": {
+                        "type": "string",
+                        "example": "USDC",
+                        "nullable": true
+                      },
+                      "triggerPolicy": {
+                        "type": "string",
+                        "example": "human_approval_threshold"
+                      },
+                      "triggerReason": {
+                        "type": "string",
+                        "example": "$12,000 exceeds auto-approve limit of $5,000"
+                      },
+                      "decision": {
+                        "type": "string",
+                        "enum": [
+                          "PENDING",
+                          "APPROVED",
+                          "DENIED",
+                          "EXPIRED"
+                        ]
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "expiresAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          }
+        },
+        "tags": [
+          "Approval Queue"
+        ],
+        "security": [
+          {
+            "x-api-key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/approvals/count": {
+      "get": {
+        "operationId": "ApprovalController_count",
+        "summary": "Get pending approval count",
+        "description": "Returns the number of pending approval requests for the authenticated operator. Used by dashboard sidebar badges and SDK polling.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Pending approval count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "pending": {
+                      "type": "number",
+                      "example": 3,
+                      "description": "Number of pending approvals"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Approval Queue"
+        ],
+        "security": [
+          {
+            "x-api-key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/approvals/{id}": {
+      "get": {
+        "operationId": "ApprovalController_findOne",
+        "summary": "Get approval request detail",
+        "description": "Returns the full detail of a single approval request, including policy evaluations, evidence artifacts, and resolution state. Only accessible to the owning operator.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Approval request ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approval request detail"
+          },
+          "403": {
+            "description": "Not your approval request"
+          },
+          "404": {
+            "description": "Approval request not found"
+          }
+        },
+        "tags": [
+          "Approval Queue"
+        ],
+        "security": [
+          {
+            "x-api-key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "ApprovalController_resolve",
+        "summary": "Resolve an approval request",
+        "description": "Approve or deny a pending approval request. If approved, the gateway resumes the full task pipeline (stages 2–8: credit debit → compute → IPFS → fingerprint → receipt). If denied, the task is marked FAILED and no credits are consumed. Both JWT and API key authentication are supported — enabling programmatic resolution from SDKs and scripts without the dashboard.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Approval request ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Resolution payload",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "decision"
+                ],
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "approved",
+                      "denied"
+                    ],
+                    "description": "Approval decision"
+                  },
+                  "note": {
+                    "type": "string",
+                    "description": "Optional note explaining the decision (e.g. \"Verified invoice with finance team\")"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Approval resolved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "decision": {
+                      "type": "string",
+                      "enum": [
+                        "approved",
+                        "denied"
+                      ]
+                    },
+                    "taskId": {
+                      "type": "string"
+                    },
+                    "receipt": {
+                      "type": "object",
+                      "description": "Full task receipt (only present when approved)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid decision value"
+          },
+          "403": {
+            "description": "Not your approval request"
+          },
+          "404": {
+            "description": "Approval request not found"
+          }
+        },
+        "tags": [
+          "Approval Queue"
+        ],
+        "security": [
+          {
+            "x-api-key": []
+          },
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/approvals/{id}/callback": {
+      "post": {
+        "operationId": "ApprovalController_registerCallback",
+        "summary": "Register approval webhook callback",
+        "description": "Register a one-shot callback URL for a specific approval request. When resolved, AgentChain POSTs the result with dual-signature headers: `x-agentchain-signature` (HMAC-SHA256 for web2 verification) and `x-agentchain-eip712-sig` (EIP-712 for crypto-native verification). The callback fires once and is then deleted. Primary use case: Trigger.dev `wait.forToken()` integration for zero-cost checkpoint-resume approval flows.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Approval request ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Callback registration payload",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "callbackUrl"
+                ],
+                "properties": {
+                  "callbackUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "URL to receive the webhook POST when the approval is resolved",
+                    "example": "https://api.trigger.dev/wait/token/abc123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Callback registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "registered": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "approvalId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your approval request"
+          },
+          "404": {
+            "description": "Approval request not found"
+          }
+        },
+        "tags": [
+          "Approval Queue"
+        ],
+        "security": [
+          {
+            "x-api-key": []
+          },
           {
             "bearer": []
           }
@@ -1519,7 +1907,7 @@
         },
         "responses": {
           "201": {
-            "description": "Agent registered. API key returned once \u2014 store securely."
+            "description": "Agent registered. API key returned once — store securely."
           }
         },
         "tags": [
@@ -1580,6 +1968,101 @@
             "bearer": []
           }
         ]
+      },
+      "patch": {
+        "operationId": "AgentsController_updateAgent",
+        "summary": "Update agent metadata",
+        "description": "Update mutable agent fields: displayName, description, capabilities, model. Validates capabilities against allowed task types.",
+        "parameters": [
+          {
+            "name": "agentId",
+            "required": true,
+            "in": "path",
+            "description": "Agent ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "type": "string",
+                    "example": "Updated Agent Name"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Updated description"
+                  },
+                  "capabilities": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "evm_action",
+                      "spend_control"
+                    ]
+                  },
+                  "model": {
+                    "type": "string",
+                    "example": "llama3:70b"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated agent record."
+          },
+          "400": {
+            "description": "Invalid capabilities or agent is archived."
+          }
+        },
+        "tags": [
+          "Agents"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "AgentsController_archiveAgent",
+        "summary": "Archive an agent (soft-delete)",
+        "description": "Sets archivedAt on the agent and revokes the associated API key. Archived agents are excluded from list queries and cannot be updated.",
+        "parameters": [
+          {
+            "name": "agentId",
+            "required": true,
+            "in": "path",
+            "description": "Agent ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Agent archived successfully."
+          }
+        },
+        "tags": [
+          "Agents"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
       }
     },
     "/api/v1/agents/{agentId}/test-run": {
@@ -1623,10 +2106,10 @@
             "description": "Task created and enqueued for pipeline processing."
           },
           "422": {
-            "description": "Guardrail blocked \u2014 prompt injection, banned topic, prompt too long, or task type not allowed."
+            "description": "Guardrail blocked — prompt injection, banned topic, prompt too long, or task type not allowed."
           },
           "429": {
-            "description": "Rate limit exceeded \u2014 max tasks/hour or max credits/day."
+            "description": "Rate limit exceeded — max tasks/hour or max credits/day."
           }
         },
         "tags": [
@@ -1643,7 +2126,7 @@
       "get": {
         "operationId": "RegistryController_getAgentCard",
         "summary": "Get ERC-8004 agent card (public, no auth)",
-        "description": "Returns the machine-readable agent-card.json for the given agent. Used by ERC-8004 discovery clients, other agents, and platform integrations. No authentication required \u2014 this is a public registry endpoint.",
+        "description": "Returns the machine-readable agent-card.json for the given agent. Used by ERC-8004 discovery clients, other agents, and platform integrations. No authentication required — this is a public registry endpoint.",
         "parameters": [
           {
             "name": "agentId",
@@ -2035,594 +2518,6 @@
         },
         "tags": [
           "settlement"
-        ]
-      }
-    },
-    "/api/v1/approvals": {
-      "get": {
-        "operationId": "ApprovalController_list",
-        "summary": "List approval requests",
-        "description": "Returns pending approval requests for the authenticated operator. Filter by decision status (PENDING, APPROVED, DENIED, EXPIRED). Defaults to PENDING. Supports both JWT (dashboard) and API key (SDK) authentication.",
-        "parameters": [
-          {
-            "name": "decision",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "PENDING",
-                "APPROVED",
-                "DENIED",
-                "EXPIRED"
-              ]
-            },
-            "description": "Filter by decision status (default: PENDING)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of approval requests",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string",
-                        "description": "Approval request ID",
-                        "example": "clx9abc123"
-                      },
-                      "taskId": {
-                        "type": "string",
-                        "description": "Associated task ID",
-                        "example": "task_abc123"
-                      },
-                      "operatorId": {
-                        "type": "string",
-                        "description": "Owning operator ID"
-                      },
-                      "agentId": {
-                        "type": "string",
-                        "description": "Agent that submitted the action",
-                        "example": "agent_invoice-bot_a1b2c3"
-                      },
-                      "actionType": {
-                        "type": "string",
-                        "description": "Action family",
-                        "example": "spend_control"
-                      },
-                      "operation": {
-                        "type": "string",
-                        "description": "Specific operation",
-                        "example": "invoice_payment"
-                      },
-                      "target": {
-                        "type": "string",
-                        "description": "Counterparty or resource",
-                        "example": "0xAcmeCorp"
-                      },
-                      "requestedValue": {
-                        "type": "number",
-                        "nullable": true,
-                        "description": "Economic value at stake",
-                        "example": 12000
-                      },
-                      "currency": {
-                        "type": "string",
-                        "nullable": true,
-                        "description": "Currency",
-                        "example": "USDC"
-                      },
-                      "triggerPolicy": {
-                        "type": "string",
-                        "description": "Policy that triggered the approval hold",
-                        "example": "human_approval_threshold"
-                      },
-                      "triggerReason": {
-                        "type": "string",
-                        "description": "Human-readable reason for hold",
-                        "example": "$12,000 exceeds auto-approve limit of $5,000"
-                      },
-                      "policyEvaluations": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "name": {
-                              "type": "string"
-                            },
-                            "result": {
-                              "type": "string",
-                              "enum": [
-                                "pass",
-                                "fail",
-                                "conditional"
-                              ]
-                            },
-                            "reason": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      },
-                      "evidenceRefs": {
-                        "type": "object",
-                        "description": "Evidence artifacts from the SDK"
-                      },
-                      "decision": {
-                        "type": "string",
-                        "enum": [
-                          "PENDING",
-                          "APPROVED",
-                          "DENIED",
-                          "EXPIRED"
-                        ],
-                        "description": "Current decision state"
-                      },
-                      "decidedBy": {
-                        "type": "string",
-                        "nullable": true,
-                        "description": "Operator who resolved"
-                      },
-                      "decidedAt": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true
-                      },
-                      "decisionNote": {
-                        "type": "string",
-                        "nullable": true,
-                        "description": "Note from the resolver"
-                      },
-                      "createdAt": {
-                        "type": "string",
-                        "format": "date-time"
-                      },
-                      "expiresAt": {
-                        "type": "string",
-                        "format": "date-time",
-                        "nullable": true,
-                        "description": "TTL expiry timestamp"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid authentication"
-          }
-        },
-        "tags": [
-          "Approval Queue"
-        ],
-        "security": [
-          {
-            "bearer": []
-          },
-          {
-            "x-api-key": []
-          }
-        ]
-      }
-    },
-    "/api/v1/approvals/count": {
-      "get": {
-        "operationId": "ApprovalController_count",
-        "summary": "Get pending approval count",
-        "description": "Returns the number of pending approval requests for the authenticated operator. Use for sidebar badges, polling indicators, or SDK health checks.",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Pending approval count",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "pending": {
-                      "type": "integer",
-                      "description": "Number of pending approvals",
-                      "example": 3
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid authentication"
-          }
-        },
-        "tags": [
-          "Approval Queue"
-        ],
-        "security": [
-          {
-            "bearer": []
-          },
-          {
-            "x-api-key": []
-          }
-        ]
-      }
-    },
-    "/api/v1/approvals/{id}": {
-      "get": {
-        "operationId": "ApprovalController_findOne",
-        "summary": "Get approval request detail",
-        "description": "Returns the full detail of a single approval request, including policy evaluations, evidence artifacts, and resolution state. Only accessible to the owning operator or master key.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Approval request ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Approval request detail",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "example": "clx9abc123"
-                    },
-                    "taskId": {
-                      "type": "string",
-                      "example": "task_abc123"
-                    },
-                    "operatorId": {
-                      "type": "string"
-                    },
-                    "agentId": {
-                      "type": "string",
-                      "example": "agent_invoice-bot_a1b2c3"
-                    },
-                    "actionType": {
-                      "type": "string",
-                      "example": "spend_control"
-                    },
-                    "operation": {
-                      "type": "string",
-                      "example": "invoice_payment"
-                    },
-                    "target": {
-                      "type": "string",
-                      "example": "0xAcmeCorp"
-                    },
-                    "requestedValue": {
-                      "type": "number",
-                      "nullable": true,
-                      "example": 12000
-                    },
-                    "currency": {
-                      "type": "string",
-                      "nullable": true,
-                      "example": "USDC"
-                    },
-                    "triggerPolicy": {
-                      "type": "string",
-                      "example": "human_approval_threshold"
-                    },
-                    "triggerReason": {
-                      "type": "string",
-                      "example": "$12,000 exceeds auto-approve limit of $5,000"
-                    },
-                    "policyEvaluations": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                            "type": "string"
-                          },
-                          "result": {
-                            "type": "string",
-                            "enum": [
-                              "pass",
-                              "fail",
-                              "conditional"
-                            ]
-                          },
-                          "reason": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    },
-                    "evidenceRefs": {
-                      "type": "object"
-                    },
-                    "decision": {
-                      "type": "string",
-                      "enum": [
-                        "PENDING",
-                        "APPROVED",
-                        "DENIED",
-                        "EXPIRED"
-                      ]
-                    },
-                    "decidedBy": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "decidedAt": {
-                      "type": "string",
-                      "format": "date-time",
-                      "nullable": true
-                    },
-                    "decisionNote": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "expiresAt": {
-                      "type": "string",
-                      "format": "date-time",
-                      "nullable": true
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid authentication"
-          },
-          "403": {
-            "description": "Not your approval request"
-          },
-          "404": {
-            "description": "Approval request not found"
-          }
-        },
-        "tags": [
-          "Approval Queue"
-        ],
-        "security": [
-          {
-            "bearer": []
-          },
-          {
-            "x-api-key": []
-          }
-        ]
-      },
-      "patch": {
-        "operationId": "ApprovalController_resolve",
-        "summary": "Resolve an approval request",
-        "description": "Approve or deny a pending approval request. If approved, the gateway resumes the full task pipeline (stages 2-8: credit debit, compute, IPFS, fingerprint, receipt). If denied, the task is marked FAILED and no credits are consumed. Supports both JWT (dashboard) and API key (SDK/scripts) authentication. Fires a dual-signed webhook (HMAC + EIP-712) to any configured webhook URL or one-shot callback.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Approval request ID"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "decision"
-                ],
-                "properties": {
-                  "decision": {
-                    "type": "string",
-                    "enum": [
-                      "approved",
-                      "denied"
-                    ],
-                    "description": "Approval decision. \"approved\" resumes the pipeline. \"denied\" marks the task as FAILED.",
-                    "example": "approved"
-                  },
-                  "note": {
-                    "type": "string",
-                    "description": "Optional note explaining the decision (stored in audit trail)",
-                    "example": "Verified invoice with finance team"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Approval resolved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "decision": {
-                      "type": "string",
-                      "enum": [
-                        "approved",
-                        "denied"
-                      ],
-                      "example": "approved"
-                    },
-                    "taskId": {
-                      "type": "string",
-                      "description": "The task that was held",
-                      "example": "task_abc123"
-                    },
-                    "receipt": {
-                      "type": "object",
-                      "description": "Full task receipt (only present when decision is \"approved\" and pipeline completes)",
-                      "properties": {
-                        "taskId": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string",
-                          "enum": [
-                            "COMPLETED",
-                            "FAILED"
-                          ]
-                        },
-                        "agentId": {
-                          "type": "string"
-                        },
-                        "latencyMs": {
-                          "type": "number"
-                        },
-                        "creditCharged": {
-                          "type": "number"
-                        },
-                        "ipfsCid": {
-                          "type": "string"
-                        },
-                        "attestationUid": {
-                          "type": "string"
-                        },
-                        "verificationBasescanUrl": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "resumeError": {
-                      "type": "string",
-                      "description": "Error message if pipeline resume failed (approval still recorded)",
-                      "nullable": true
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid decision value \u2014 must be \"approved\" or \"denied\""
-          },
-          "401": {
-            "description": "Missing or invalid authentication"
-          },
-          "403": {
-            "description": "Not your approval request"
-          },
-          "404": {
-            "description": "Approval request not found"
-          }
-        },
-        "tags": [
-          "Approval Queue"
-        ],
-        "security": [
-          {
-            "bearer": []
-          },
-          {
-            "x-api-key": []
-          }
-        ]
-      }
-    },
-    "/api/v1/approvals/{id}/callback": {
-      "post": {
-        "operationId": "ApprovalController_registerCallback",
-        "summary": "Register approval webhook callback",
-        "description": "Register a one-shot callback URL for a specific approval. When resolved, AgentChain POSTs the result to your URL with dual-signature headers (HMAC for web2 verification, EIP-712 for crypto-native verification). The callback fires once and is then deleted. Primary use: Trigger.dev wait.forToken() for zero-cost checkpoint-resume approval flows.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Approval request ID"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "callbackUrl"
-                ],
-                "properties": {
-                  "callbackUrl": {
-                    "type": "string",
-                    "format": "uri",
-                    "description": "URL to receive the webhook POST when the approval is resolved. Must be publicly reachable.",
-                    "example": "https://api.trigger.dev/wait/token/abc123"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Callback registered successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "registered": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "approvalId": {
-                      "type": "string",
-                      "example": "clx9abc123"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "callbackUrl is required"
-          },
-          "401": {
-            "description": "Missing or invalid authentication"
-          },
-          "403": {
-            "description": "Not your approval request"
-          },
-          "404": {
-            "description": "Approval request not found"
-          }
-        },
-        "tags": [
-          "Approval Queue"
-        ],
-        "security": [
-          {
-            "bearer": []
-          },
-          {
-            "x-api-key": []
-          }
         ]
       }
     }
@@ -3064,7 +2959,7 @@
           "keyPrefix": {
             "type": "string",
             "example": "ac_ab12...cd34",
-            "description": "Prefix for display \u2014 never the full key"
+            "description": "Prefix for display — never the full key"
           },
           "rateLimitRpm": {
             "type": "number",
@@ -3079,7 +2974,7 @@
           },
           "isTestKey": {
             "type": "boolean",
-            "description": "True for system-generated diagnostic test keys \u2014 excluded from tier limit count"
+            "description": "True for system-generated diagnostic test keys — excluded from tier limit count"
           },
           "testUsesRemaining": {
             "type": "number",
@@ -3116,7 +3011,7 @@
         "properties": {
           "plainKey": {
             "type": "string",
-            "description": "Plain-text key \u2014 shown ONCE, never returned again"
+            "description": "Plain-text key — shown ONCE, never returned again"
           },
           "keyId": {
             "type": "string"
@@ -3186,7 +3081,7 @@
         "properties": {
           "nonce": {
             "type": "string",
-            "description": "UUID challenge nonce \u2014 single-use, sign and POST back immediately"
+            "description": "UUID challenge nonce — single-use, sign and POST back immediately"
           },
           "operatorId": {
             "type": "string",
@@ -3199,7 +3094,7 @@
           },
           "chainId": {
             "type": "number",
-            "description": "EIP-712 chainId \u2014 8453 for Base Mainnet",
+            "description": "EIP-712 chainId — 8453 for Base Mainnet",
             "example": 8453
           }
         },
@@ -3215,7 +3110,7 @@
         "properties": {
           "walletAddress": {
             "type": "string",
-            "description": "Base wallet address (0x...) \u2014 must be the signer of the EIP-712 payload",
+            "description": "Base wallet address (0x...) — must be the signer of the EIP-712 payload",
             "example": "0x6a8CB7fd38dB93f9679466ab42CDca8D5951f5a9"
           },
           "signature": {
@@ -3225,7 +3120,7 @@
           },
           "nonce": {
             "type": "string",
-            "description": "UUID nonce issued by GET /api/v1/operator/wallet/nonce \u2014 single-use, rotated after bind",
+            "description": "UUID nonce issued by GET /api/v1/operator/wallet/nonce — single-use, rotated after bind",
             "example": "3f87ab12-4c90-4e1d-b3d2-0e1234567890"
           }
         },
