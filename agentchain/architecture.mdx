@@ -17,6 +17,12 @@ flowchart LR
     B --> C[Verification]
     C --> D[Attestation]
     D --> E[Settlement]
+
+    style A fill:#0a0a0b,stroke:#d7b94d,stroke-width:2px,color:#fafafa
+    style B fill:#0a0a0b,stroke:#5ba3b5,stroke-width:2px,color:#fafafa
+    style C fill:#0a0a0b,stroke:#818cf8,stroke-width:2px,color:#fafafa
+    style D fill:#0a0a0b,stroke:#10B981,stroke-width:2px,color:#fafafa
+    style E fill:#0a0a0b,stroke:#fbbf24,stroke-width:2px,color:#fafafa
 ```
 
 | Stage | What Happens | Where |
@@ -39,6 +45,12 @@ flowchart TD
     Protocol --> P[Policies]
     Protocol --> V[Action Verifier]
     Protocol --> D[Dispute Engine]
+
+    style Gov fill:#0a0a0b,stroke:#d7b94d,stroke-width:2px,color:#fafafa
+    style Protocol fill:#0a0a0b,stroke:#5ba3b5,stroke-width:2px,color:#fafafa
+    style P fill:#0a0a0b,stroke:#818cf8,stroke-width:2px,color:#fafafa
+    style V fill:#0a0a0b,stroke:#10B981,stroke-width:2px,color:#fafafa
+    style D fill:#0a0a0b,stroke:#fbbf24,stroke-width:2px,color:#fafafa
 ```
 
 ### Contracts
@@ -65,6 +77,11 @@ flowchart TD
     Client[Agent / Client] -->|API Request| Gateway[AgentChain Gateway]
     Gateway -->|Queue| Compute[Decentralized Compute Engine]
     Compute -->|Protocol| Verifier[On-Chain Verifier]
+
+    style Client fill:#0a0a0b,stroke:#d7b94d,stroke-width:2px,color:#fafafa
+    style Gateway fill:#0a0a0b,stroke:#5ba3b5,stroke-width:2px,color:#fafafa
+    style Compute fill:#0a0a0b,stroke:#818cf8,stroke-width:2px,color:#fafafa
+    style Verifier fill:#0a0a0b,stroke:#10B981,stroke-width:2px,color:#fafafa
 ```
 
 At no point does the gateway inherently trust the compute layer. Every payload is forcefully routed into deterministic cryptographic replay before it is allowed to settle.

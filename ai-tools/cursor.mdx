@@ -28,6 +28,38 @@ Set up Cursor to help you write and maintain your Mintlify documentation.
   and workflow guidance.
 </Step>
 
+<Step title="Connect the Agentchain MCP server">
+  Open MCP settings with Command + Shift + P, then select **Open MCP settings**
+  and **Add custom MCP**. Add this server in `mcp.json`:
+
+  ```json
+  {
+    "mcpServers": {
+      "agentchain-docs": {
+        "url": "https://docs.agentchain.xyz/mcp"
+      }
+    }
+  }
+  ```
+
+  If you need protected documentation, use
+  `https://docs.agentchain.xyz/authed/mcp` instead.
+</Step>
+
+<Step title="Smoke-test the MCP connection">
+  In Cursor chat, ask:
+
+  ```text
+  What MCP tools are available from agentchain-docs?
+  ```
+
+  Then ask:
+
+  ```text
+  Use agentchain-docs MCP and search for "authentication setup".
+  ```
+</Step>
+
 <Step title="Customize project instructions">
   Edit `AGENTS.md` in your project root to add project-specific terminology,
   style preferences, and content boundaries.

@@ -195,6 +195,9 @@
     "name": "Launch App",
     "url": "https://dashboard.agentchain.xyz"
   },
+  "contextual": {
+    "options": ["mcp", "add-mcp", "cursor"]
+  },
   "footerSocials": {
     "x": "https://x.com/humbleaf",
     "github": "https://github.com/humbleaf"

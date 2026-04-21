@@ -30,6 +30,31 @@ Set up Claude Code to help you write and maintain your Mintlify documentation.
   and workflow guidance.
 </Step>
 
+<Step title="Connect the Agentchain MCP server">
+  Add the hosted docs MCP server:
+
+  ```bash
+  claude mcp add --transport http agentchain-docs https://docs.agentchain.xyz/mcp
+  ```
+
+  If you need protected documentation, use:
+
+  ```bash
+  claude mcp add --transport http agentchain-docs https://docs.agentchain.xyz/authed/mcp
+  ```
+</Step>
+
+<Step title="Smoke-test the MCP connection">
+  Run:
+
+  ```bash
+  claude mcp list
+  ```
+
+  Then in Claude Code, ask it to use `agentchain-docs` MCP to search your docs
+  for a known phrase like "authentication setup".
+</Step>
+
 <Step title="Customize project instructions">
   Edit `AGENTS.md` in your project root to add project-specific terminology,
   style preferences, and content boundaries.
