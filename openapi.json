@@ -782,6 +782,11 @@
                           "type": "number",
                           "nullable": true,
                           "description": "Milliseconds until rate limit window resets"
+                        },
+                        "rateLimitResetUnix": {
+                          "type": "number",
+                          "nullable": true,
+                          "description": "Unix timestamp (seconds) when window resets — aligns with X-RateLimit-Reset"
                         }
                       }
                     }
