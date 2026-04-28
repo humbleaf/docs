@@ -3,11 +3,9 @@ title: "Deployments"
 description: "Contract addresses for SignerAnchor, ReceiptAnchor, and PolicyAnchor on Base Sepolia and Base mainnet."
 ---
 
-<Warning>
-  The anchor contracts have been **implemented and tested** but are **pending on-chain deployment**.
-  Addresses will be published here after the Base Sepolia deploy is executed.
-  This page is the canonical address registry — always use this as your trust root, not hardcoded addresses.
-</Warning>
+<Note>
+  This is the canonical on-chain address registry for the AgentChain anchor suite. Always use this page as your trust root — never hardcode addresses from other sources.
+</Note>
 
 ## Anchor Contracts
 
@@ -17,9 +15,9 @@ These contracts are non-custodial, immutable (no proxy, no upgrade path).
 
 | Contract | Purpose | Status |
 |----------|---------|--------|
-| `SignerAnchor` | On-chain registry of authorized receipt signers; powers `isAuthorized()` | ✅ Implemented · ⏳ Pending deploy |
-| `ReceiptAnchor` | Permissionless receipt hash anchoring for `anchored` lifecycle state | ✅ Implemented · ⏳ Pending deploy |
-| `PolicyAnchor` | Optional on-chain policy hash registry for `policySource = "anchored"` | 🔲 Planned (Addendum B §B.5) |
+| `SignerAnchor` | On-chain registry of authorized receipt signers; powers `isAuthorized()` | ✅ Deployed |
+| `ReceiptAnchor` | Permissionless receipt hash anchoring for `anchored` lifecycle state | ✅ Deployed |
+| `PolicyAnchor` | Optional on-chain policy hash registry for `policySource = "anchored"` | ✅ Deployed |
 
 ## Deploy Commands
 
@@ -46,12 +44,15 @@ forge script script/DeployReceiptAnchor.s.sol \
 
 ## Base Sepolia (chainId: 84532)
 
+Deployed **2026-04-28** by `0x6a8CB7fd38dB93f9679466ab42CDca8D5951f5a9` (ANCHOR_PRIVATE_KEY).
+Verified on [sepolia.basescan.org](https://sepolia.basescan.org).
+
 | Contract | Address | BaseScan |
-|----------|---------|---------| 
-| `SignerAnchor` | `PENDING` | — |
-| `ReceiptAnchor` | `PENDING` | — |
-| `PolicyAnchor` | `PENDING` | — |
-| Multisig owner | `PENDING` | — |
+|----------|---------|---------|
+| `SignerAnchor` | `0x36cbAE566545e8df3ad15C171a7840266526E28F` | [View ↗](https://sepolia.basescan.org/address/0x36cbAE566545e8df3ad15C171a7840266526E28F) |
+| `ReceiptAnchor` | `0x1F98D953785047f25a4886D12D103F4D67F1D8B3` | [View ↗](https://sepolia.basescan.org/address/0x1F98D953785047f25a4886D12D103F4D67F1D8B3) |
+| `PolicyAnchor` | `0xe69BCa52D31Ea05034252b5A4034F045A401DDAC` | [View ↗](https://sepolia.basescan.org/address/0xe69BCa52D31Ea05034252b5A4034F045A401DDAC) |
+| Multisig owner | `PENDING` (2-of-3 Safe) | — |
 
 ## Base Mainnet (chainId: 8453)
 
@@ -61,7 +62,7 @@ forge script script/DeployReceiptAnchor.s.sol \
 </Warning>
 
 | Contract | Address | BaseScan |
-|----------|---------|---------| 
+|----------|---------|---------|
 | `SignerAnchor` | `PENDING (CD-002)` | — |
 | `ReceiptAnchor` | `PENDING (CD-002)` | — |
 | `PolicyAnchor` | `PENDING (CD-002)` | — |
@@ -69,9 +70,27 @@ forge script script/DeployReceiptAnchor.s.sol \
 
 ## SDK verify fallback
 
-Until `SignerAnchor` is deployed on a given chain, `ReceiptDomain.verifyingContract = 0x00..00`
-and the SDK falls back to the HTTP signer registry at `GET /.well-known/agentchain-signers`.
+Until `SignerAnchor` is configured in the SDK client, `ReceiptDomain.verifyingContract` defaults to the deployed `SignerAnchor` address on Base Sepolia (`0x36cbAE566545e8df3ad15C171a7840266526E28F`).
+For other chains where `SignerAnchor` is not yet deployed, the SDK falls back to the HTTP signer registry at `GET /.well-known/agentchain-signers`.
 This is surfaced via `reasons: ["signer_anchor_unavailable"]` in the verify response — never a silent pass.
+
+## Passing the anchor address to the SDK
+
+```typescript
+import { AgentChain } from '@humbleaf/agentchain-sdk';
+
+const ac = new AgentChain({
+  apiKey: process.env.AGENTCHAIN_API_KEY,
+  signerAnchorAddress: '0x36cbAE566545e8df3ad15C171a7840266526E28F', // Base Sepolia
+  signerAnchorChainId: 84532,
+  signerAnchorRpcUrl: 'https://sepolia.base.org',
+});
+
+// Two-step ECDSA + on-chain signer check
+const result = await ac.receipts.verifyWithAnchor(receipt);
+// result.valid === true
+// result.anchorState === 'authorized' | 'revoked' | 'unavailable'
+```
 
 ## On-disk registry
 

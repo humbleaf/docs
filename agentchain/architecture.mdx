@@ -62,6 +62,18 @@ flowchart TD
 | **ActionVerifier** | Deterministic EVM state replay + policy compliance check | Yes (UUPS) |
 | **TaskMarket** | Task submission and verification anchoring | No |
 
+### Anchor Suite
+
+Deployed **2026-04-28** on Base Sepolia. Immutable — no proxy, no upgrade path.
+
+| Contract | Address | Purpose |
+|---|---|---|
+| `SignerAnchor` | `0x36cbAE566545e8df3ad15C171a7840266526E28F` | Registry of authorized receipt signers; `isAuthorized()` |
+| `ReceiptAnchor` | `0x1F98D953785047f25a4886D12D103F4D67F1D8B3` | Permissionless receipt hash anchoring |
+| `PolicyAnchor` | `0xe69BCa52D31Ea05034252b5A4034F045A401DDAC` | Optional on-chain policy hash registry |
+
+See [Deployments](/agentchain/deployments) for BaseScan links and the full registry.
+
 ### Governance
 
 All proxy upgrades flow through strict governance constraints to protect operator funds and network integrity. Modifications typically observe a 48-hour timelock, with emergency paths available for CVE-grade patches.
@@ -74,17 +86,26 @@ The AgentChain network treats verification as a secure black-box pipeline. The g
 
 ```mermaid
 flowchart TD
-    Client[Agent / Client] -->|API Request| Gateway[AgentChain Gateway]
-    Gateway -->|Queue| Compute[Decentralized Compute Engine]
-    Compute -->|Protocol| Verifier[On-Chain Verifier]
+    Client["Agent / Client"] -->|Guard Request| Gateway["AgentChain Gateway"]
+    Gateway -->|"Policy eval (v2)"| Core["@agentchain/core\nCanonicalization"]
+    Core -->|Signed receipt| Client
+    Gateway -->|"API Request (v1)"| Queue["Decentralized Compute Engine"]
+    Queue -->|Protocol| Verifier["On-Chain Verifier"]
+    Gateway -->|"Anchor job"| Anchors["Anchor Suite\n(Base Sepolia)"]
 
     style Client fill:#0a0a0b,stroke:#d7b94d,stroke-width:2px,color:#fafafa
     style Gateway fill:#0a0a0b,stroke:#5ba3b5,stroke-width:2px,color:#fafafa
-    style Compute fill:#0a0a0b,stroke:#818cf8,stroke-width:2px,color:#fafafa
+    style Core fill:#0a0a0b,stroke:#818cf8,stroke-width:2px,color:#fafafa
+    style Queue fill:#0a0a0b,stroke:#818cf8,stroke-width:2px,color:#fafafa
     style Verifier fill:#0a0a0b,stroke:#10B981,stroke-width:2px,color:#fafafa
+    style Anchors fill:#0a0a0b,stroke:#10B981,stroke-width:2px,color:#fafafa
 ```
 
-At no point does the gateway inherently trust the compute layer. Every payload is forcefully routed into deterministic cryptographic replay before it is allowed to settle.
+<Info>
+**Two trust paths exist in parallel:**
+- **v2 guard path (pre-transaction):** Client calls `POST /api/v1/evm/guard` → policy evaluated → signed receipt returned → client executes on-chain → optional `ReceiptAnchor` anchoring.
+- **v1 verification path (post-execution):** Client submits `POST /tasks/submit` → worker replays EVM action → `ActionVerifier` produces on-chain proof → EAS attestation minted.
+</Info>
 
 ---
 

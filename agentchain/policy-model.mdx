@@ -20,6 +20,8 @@ type GuardPolicyRulesV2 = {
   dailyCapWei: string;                // rolling 24h aggregate cap
   approvalThresholdWei: string;       // value above which → approval_required
 };
+
+type GuardPolicyState = 'active' | 'frozen' | 'revoked';
 ```
 
 All string values are decimal-encoded (not hex) for JSON interoperability. `allowedTargets` are stored and compared lowercased.
@@ -81,12 +83,47 @@ const updated = await ac.policies.update('pol_swap_safe', 84532, {
 const history = await ac.policies.listVersions('pol_swap_safe', 84532);
 ```
 
+## Policy State Machine
+
+Every policy has a `state` field that follows a strict one-way progression:
+
+```mermaid
+stateDiagram-v2
+    [*] --> active : create()
+    active --> frozen : freeze()
+    active --> revoked : revoke()
+    frozen --> active : unfreeze()
+    frozen --> revoked : revoke()
+    revoked --> [*]
+```
+
+| State | Guard requests | Existing receipts | Reversible? |
+|-------|---------------|-------------------|-------------|
+| `active` | ✅ Accepted | ✅ Valid | — |
+| `frozen` | ❌ Rejected (`POLICY_FROZEN`) | ✅ Valid | Yes — `unfreeze()` |
+| `revoked` | ❌ Rejected (`POLICY_REVOKED`) | ❌ Invalidated | No — permanent |
+
+<Warning>
+**`revoked` is irreversible.** Once a policy is revoked, no new guard requests are accepted and `verifyRemote()` returns `valid: false` for all receipts issued under it. Use `frozen` for temporary suspension.
+</Warning>
+
+```typescript
+// Freeze (pausable)
+await ac.policies.freeze('pol_swap_safe', 84532);
+await ac.policies.unfreeze('pol_swap_safe', 84532);
+
+// Revoke (permanent)
+await ac.policies.revoke('pol_swap_safe', 84532);
+```
+
+---
+
 ## policySource field in receipts
 
 | Value | Meaning |
 |-------|---------|
-| `"gateway"` | Policy resolved from the gateway database (MVP default) |
-| `"anchored"` | Policy hash is anchored on-chain via `PolicyAnchor` |
+| `"gateway"` | Policy resolved from the gateway database (default) |
+| `"anchored"` | Policy hash is anchored on-chain via `PolicyAnchor` (`0xe69BCa52D31Ea05034252b5A4034F045A401DDAC`) |
 | `"onchain_registry"` | Policy resolved from `AgentPolicy.sol` (future) |
 
 ## Chain binding

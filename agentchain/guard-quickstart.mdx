@@ -7,16 +7,30 @@ description: "Submit a transaction through the AgentChain policy engine and get 
 
 AgentChain SDK v2 introduces the **EVM guard flow** — a pre-transaction policy check that returns a signed receipt before any value moves on-chain.
 
-```
-[SDK] → POST /api/v1/evm/guard → [Gateway]
-             ↓
-     policy evaluation
-             ↓
-     EIP-712 signed receipt
-             ↓
-[SDK] → wallet.sendTransaction → [Chain]
-             ↓
-     POST /api/v1/receipts/:id/execution
+```mermaid
+flowchart TD
+    A["SDK\nguardTransaction()"] --> B["POST /api/v1/evm/guard\n[Gateway]"]
+    B --> C["Policy evaluation\n(GuardEngineService)"]
+    C -->|allow| D["EIP-712 signed receipt\n(decision = allow)"]
+    C -->|deny| E["Signed receipt\n(decision = deny)"]
+    C -->|above threshold| F["Signed receipt\n(decision = approval_required)"]
+    D --> G["wallet.sendTransaction\n[Chain]"]
+    G --> H["POST /api/v1/receipts/:id/execution\nreportExecution()"]
+    H --> I["state = executed"]
+    I --> J["ReceiptAnchorJob\n(batch cron)"]
+    J --> K["ReceiptAnchor.sol\nstate = anchored"]
+
+    style A fill:#0a0a0b,stroke:#d7b94d,stroke-width:2px,color:#fafafa
+    style B fill:#0a0a0b,stroke:#5ba3b5,stroke-width:2px,color:#fafafa
+    style C fill:#0a0a0b,stroke:#818cf8,stroke-width:2px,color:#fafafa
+    style D fill:#0a0a0b,stroke:#10B981,stroke-width:2px,color:#fafafa
+    style E fill:#0a0a0b,stroke:#fbbf24,stroke-width:2px,color:#fafafa
+    style F fill:#0a0a0b,stroke:#d7b94d,stroke-width:2px,color:#fafafa
+    style G fill:#0a0a0b,stroke:#818cf8,stroke-width:2px,color:#fafafa
+    style H fill:#0a0a0b,stroke:#5ba3b5,stroke-width:2px,color:#fafafa
+    style I fill:#0a0a0b,stroke:#10B981,stroke-width:2px,color:#fafafa
+    style J fill:#0a0a0b,stroke:#818cf8,stroke-width:2px,color:#fafafa
+    style K fill:#0a0a0b,stroke:#10B981,stroke-width:2px,color:#fafafa
 ```
 
 ## Install
@@ -34,8 +48,6 @@ const ac = new AgentChain({
   apiKey: process.env.AGENTCHAIN_API_KEY,
 });
 ```
-
-`agentId` is no longer required in v2.
 
 ## Create a policy
 
@@ -118,6 +130,10 @@ console.log(receipt.decision); // 'allow' | 'deny' | 'approval_required'
 console.log(receipt.reasonCodes); // e.g. ['VALUE_EXCEEDED']
 ```
 
+<Info>
+**`decisionExpiresAt`** — The gateway sets this to `issuedAt + 300s`. If execution takes more than 5 minutes, call `guardTransaction` again for a fresh receipt. `guardAndExecute` throws `AgentChainExpiredDecision` automatically if the window has closed.
+</Info>
+
 ## Verify a receipt locally
 
 No network call required:
@@ -131,8 +147,26 @@ const valid = ac.receipts.verify(
 console.log('signature valid:', valid);
 ```
 
+## Verify on-chain (SignerAnchor)
+
+For trustless verification — confirm the signer is authorized at the contract level:
+
+```typescript
+const ac = new AgentChain({
+  apiKey: process.env.AGENTCHAIN_API_KEY,
+  signerAnchorAddress: '0x36cbAE566545e8df3ad15C171a7840266526E28F', // Base Sepolia
+  signerAnchorChainId: 84532,
+  signerAnchorRpcUrl: 'https://sepolia.base.org',
+});
+
+const result = await ac.receipts.verifyWithAnchor(receipt);
+console.log('valid:', result.valid);
+console.log('anchorState:', result.anchorState); // 'authorized' | 'revoked' | 'unavailable'
+```
+
 ## Next steps
 
 - [Policy model](/agentchain/policy-model) — configure rules, thresholds, and caps
 - [Receipts](/agentchain/receipts) — receipt lifecycle, states, and verification
+- [Deployments](/agentchain/deployments) — live anchor contract addresses
 - [API reference](/api-reference) — REST endpoints

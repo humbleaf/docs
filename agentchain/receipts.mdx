@@ -9,14 +9,30 @@ A receipt is a **cryptographically signed, gateway-issued document** that record
 
 ## Receipt lifecycle
 
+```mermaid
+flowchart LR
+    A[issued] --> B[executed]
+    B --> C[anchored]
+    A --> D[denied]
+    A --> E[approval_required]
+    A --> F[expired]
+
+    style A fill:#0a0a0b,stroke:#5ba3b5,stroke-width:2px,color:#fafafa
+    style B fill:#0a0a0b,stroke:#818cf8,stroke-width:2px,color:#fafafa
+    style C fill:#0a0a0b,stroke:#10B981,stroke-width:2px,color:#fafafa
+    style D fill:#0a0a0b,stroke:#fbbf24,stroke-width:2px,color:#fafafa
+    style E fill:#0a0a0b,stroke:#d7b94d,stroke-width:2px,color:#fafafa
+    style F fill:#0a0a0b,stroke:#fbbf24,stroke-width:2px,color:#fafafa
 ```
-issued
-  ├─→ executed  (client reported txHash)
-  │     └─→ anchored  (optional: receipt hash written on-chain)
-  ├─→ denied    (terminal — policy rejected)
-  ├─→ approval_required  (pending human decision)
-  └─→ expired   (decisionExpiresAt passed, never executed)
-```
+
+| State | Terminal? | Meaning |
+|-------|-----------|---------|
+| `issued` | No | Guard evaluated, decision signed, awaiting client execution |
+| `executed` | No | Client reported `txHash` via `reportExecution()` |
+| `anchored` | Yes | `receiptHash` written on-chain to `ReceiptAnchor` |
+| `denied` | Yes | Policy rejected — no execution possible |
+| `approval_required` | No | Held in approval queue pending operator decision |
+| `expired` | Yes | `decisionExpiresAt` passed before execution was reported |
 
 ## Receipt fields
 
@@ -43,7 +59,7 @@ type EvmGuardReceiptV2 = {
 
   // Timing
   issuedAt: string;            // ISO 8601
-  decisionExpiresAt: string;   // ISO 8601 — MUST send before this
+  decisionExpiresAt: string;   // ISO 8601 — MUST send before this (default: issuedAt + 300s)
   receiptExpiresAt: string;    // ISO 8601 (0 = never)
 
   // Signature (EIP-712)
@@ -60,6 +76,9 @@ type EvmGuardReceiptV2 = {
   executionTxHash: string | null;
   executionChainId: number | null;
   executionReportedAt: string | null;
+
+  // Anchor (filled after on-chain anchoring)
+  anchorTxHash: string | null; // tx that wrote receiptHash to ReceiptAnchor
 };
 ```
 
@@ -71,8 +90,8 @@ Receipts are signed with **EIP-712** (`keccak256(0x1901 ‖ domainSeparator ‖ 
 const ReceiptDomain = {
   name: "AgentChain Receipt",
   version: "2",
-  chainId: <number>,                       // chain the receipt authorizes
-  verifyingContract: "0x0000...0000",      // 0x00 until SignerAnchor is deployed
+  chainId: <number>,                        // chain the receipt authorizes
+  verifyingContract: "0x36cbAE566545e8df3ad15C171a7840266526E28F", // SignerAnchor (Base Sepolia)
 };
 ```
 
@@ -93,6 +112,34 @@ const valid = ac.receipts.verify(
 
 Uses `@agentchain/core` `verifyReceiptSignature` — pure ECDSA recover, no HTTP.
 
+## On-chain verification (trustless)
+
+```typescript
+const ac = new AgentChain({
+  apiKey: '...',
+  signerAnchorAddress: '0x36cbAE566545e8df3ad15C171a7840266526E28F',
+  signerAnchorChainId: 84532,
+  signerAnchorRpcUrl: 'https://sepolia.base.org',
+});
+
+const result = await ac.receipts.verifyWithAnchor(receipt);
+```
+
+`verifyWithAnchor` performs two independent checks:
+1. **ECDSA verify** — `signerAddress` correctly recovers from `receiptHash` + `signature`
+2. **On-chain check** — `SignerAnchor.isAuthorized(signerAddress)` returns `true`
+
+```typescript
+// VerifyReceiptResult discriminated union
+type VerifyReceiptResult =
+  | { valid: true;  anchorState: 'authorized'; reasons: [] }
+  | { valid: true;  anchorState: 'unavailable'; reasons: ['signer_anchor_unavailable'] }
+  | { valid: false; anchorState: 'revoked';    reasons: ['signer_revoked'] }
+  | { valid: false; anchorState: 'mismatch';   reasons: ['signature_invalid'] };
+```
+
+The SDK degrades gracefully (IC-30): if the RPC call fails, `anchorState` is `'unavailable'` and ECDSA verification alone is used. Never a silent pass.
+
 ## Remote verification
 
 ```typescript
@@ -102,7 +149,7 @@ if (!result.valid) {
 }
 ```
 
-The gateway checks signature, expiry, state, and (when available) `SignerAnchor` revocation status.
+The gateway checks signature, expiry, state, and `SignerAnchor` revocation status.
 
 ## Fetch by ID
 
@@ -127,6 +174,15 @@ The gateway sets `decisionExpiresAt` to `issuedAt + 300s` (configurable). If you
 
 The SDK throws `AgentChainExpiredDecision` if `decisionExpiresAt < now` when `guardAndExecute` tries to send.
 
-## Anchoring (optional, future)
+## Anchoring
 
-When a policy has `anchoring = "receipt_hash_onchain"`, the gateway writes the `receiptHash` to `ReceiptAnchor.sol` on the declared chain. The receipt transitions from `executed` → `anchored` after 2 confirmations. See Addendum B §B.4.
+When a policy has `anchoring = "receipt_hash_onchain"`, the gateway's `ReceiptAnchorJob` batch-writes the `receiptHash` to `ReceiptAnchor.sol` on the declared chain. The receipt transitions from `executed` → `anchored` after 2 confirmations.
+
+**`ReceiptAnchor` on Base Sepolia:** `0x1F98D953785047f25a4886D12D103F4D67F1D8B3`
+
+```typescript
+// Poll anchor status
+const status = await ac.receipts.getAnchorStatus(receiptId);
+// status.state — 'pending' | 'anchored'
+// status.anchorTxHash — string | null
+```

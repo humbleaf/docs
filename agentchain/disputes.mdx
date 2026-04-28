@@ -24,19 +24,25 @@ A dispute is opened when:
 
 Because the Action Verifier is a deterministic state transition evaluator, there is no need for prolonged back-and-forth interactivity (e.g. Optimistic Bisection). The court handles the mismatch in a single execution step.
 
-```
-Transaction 1: Challenger calls openDispute(taskId, stateRootClaim) with 1 ETH bond
-Transaction 2: Contract automatically enforces resolveActionDispute() against the verified policy bundle
-```
+```mermaid
+sequenceDiagram
+    participant Ch as Challenger
+    participant Ct as BisectionCourtV3
+    participant AV as ActionVerifier
+    participant Tr as Treasury
 
-### The Fast-Path Protocol
-
-| Step | What Happens | Who Acts |
-|---|---|---|
-| 1 | Challenger calls `openDispute()` bridging 1 ETH to the Settlement Contract | Challenger |
-| 2 | Revert check triggers on the underlying Action Verifier | Contract |
-| 3 | Single step EVM verification determines the absolute truth | Contract |
-| 4 | Dispute is `RESOLVED_FAST`. Winner takes 0.9 ETH, 0.1 ETH routed to Treasury | Contract |
+    Ch->>Ct: openDispute(taskId, stateRootClaim) + 1 ETH bond
+    Ct->>AV: verifyAction(taskId, transactions, effectClaimHash)
+    AV-->>Ct: stateMatch / policyCompliant verdict
+    Ct->>Ct: resolveActionDispute() — RESOLVED_FAST
+    alt Challenger wins
+        Ct-->>Ch: 0.9 ETH returned
+        Ct-->>Tr: 0.1 ETH fee
+    else Defender wins
+        Ct-->>Tr: 0.1 ETH fee
+        Ct-->>Ch: 0 ETH (bond forfeited)
+    end
+```
 
 This drops the settlement time for action verification disputes from hours (in a multi-round game) to roughly ~10 seconds.
 

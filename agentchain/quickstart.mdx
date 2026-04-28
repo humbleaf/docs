@@ -234,20 +234,30 @@ curl https://api.agentchain.xyz/api/v1/attestations/YOUR_TASK_ID
 
 ## What Just Happened?
 
-```
-Your wallet  →  faucet mints MockUSDC  →  payment gate funded
-     ↓
-POST /tasks/submit + X-402-Payment header
-     ↓
-X-402 interceptor verifies on-chain transfer  →  task created
-     ↓
-Compute provider executes task  →  result pinned to IPFS
-     ↓
-Verification oracle scores the result
-     ↓
-Result anchored on-chain (TaskMarket)  →  EAS attestation minted
-     ↓
-attestationUid + easscanUrl returned in task response
+```mermaid
+flowchart TD
+    A["Your wallet\nfaucet mints MockUSDC"] --> B["Payment gate funded\n(MockUSDC pre-loaded)"]
+    B --> C["POST /tasks/submit\n+ X-402-Payment header"]
+    C --> D["X-402 interceptor\nverifies on-chain transfer"]
+    D --> E["Task created"]
+    E --> F["Compute provider\nexecutes task"]
+    F --> G["Result pinned to IPFS\n(PRIOR protocol)"]
+    G --> H["Verification oracle\nscores the result"]
+    H --> I["Result anchored on-chain\n(TaskMarket)"]
+    I --> J["EAS attestation minted"]
+    J --> K["attestationUid + easscanUrl\nreturned in task response"]
+
+    style A fill:#0a0a0b,stroke:#d7b94d,stroke-width:2px,color:#fafafa
+    style B fill:#0a0a0b,stroke:#d7b94d,stroke-width:2px,color:#fafafa
+    style C fill:#0a0a0b,stroke:#5ba3b5,stroke-width:2px,color:#fafafa
+    style D fill:#0a0a0b,stroke:#5ba3b5,stroke-width:2px,color:#fafafa
+    style E fill:#0a0a0b,stroke:#818cf8,stroke-width:2px,color:#fafafa
+    style F fill:#0a0a0b,stroke:#818cf8,stroke-width:2px,color:#fafafa
+    style G fill:#0a0a0b,stroke:#818cf8,stroke-width:2px,color:#fafafa
+    style H fill:#0a0a0b,stroke:#818cf8,stroke-width:2px,color:#fafafa
+    style I fill:#0a0a0b,stroke:#10B981,stroke-width:2px,color:#fafafa
+    style J fill:#0a0a0b,stroke:#10B981,stroke-width:2px,color:#fafafa
+    style K fill:#0a0a0b,stroke:#10B981,stroke-width:2px,color:#fafafa
 ```
 
 Every step is auditable. The `attestationUid` is your permanent, tamper-proof receipt.

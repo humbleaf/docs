@@ -1,89 +1,207 @@
 ---
 title: 'SDK Reference'
-description: 'The @agentchain/sdk TypeScript package — deploy verifiable AI compute in 3 lines.'
+description: 'The @humbleaf/agentchain-sdk TypeScript package — pre-transaction EVM guard with cryptographically signed receipts.'
 ---
 
 ## Installation
 
 ```bash
-npm install @agentchain/sdk
+npm install @humbleaf/agentchain-sdk viem
 ```
 
 ## Quick Start
 
 ```typescript
-import { AgentChain } from '@agentchain/sdk';
+import { createWalletClient, http } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { baseSepolia } from 'viem/chains';
+import { AgentChain } from '@humbleaf/agentchain-sdk';
 
-const agent = new AgentChain({
-  apiKey: 'ac_test_xxxxxxxxxxxxxxxxxxxx',
-  apiUrl: 'https://api.agentchain.xyz', // Base Sepolia endpoint
+const ac = new AgentChain({
+  apiKey: process.env.AGENTCHAIN_API_KEY,
 });
 
-// Submit a deterministic EVM action for verification
-const receipt = await agent.verification.submitEVMAction({
-  preStateRootRaw: '0x4b71...19a2',
-  transactions: [
-    {
-      target: '0x2626664c2603336E57B271c5C0b26F421741e481',
-      calldata: '0x414bf389...',
-      value: '0',
-      slippageBps: 50
-    }
-  ],
-  effectClaimHash: '0x88c3...def1'
+const wallet = createWalletClient({
+  account: privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`),
+  chain: baseSepolia,
+  transport: http(),
 });
 
-console.log(`Action submitted. Receipt ID: ${receipt.id}`);
+// Guard a transaction through the policy engine and execute if allowed
+const { receipt, transactionHash } = await ac.evm.guardAndExecute(wallet, {
+  chainId: 84532,
+  from: wallet.account.address,
+  to: '0x2626664c2603336E57B271c5C0b26F421741e481', // UniswapV3 Router
+  data: '0x...',
+  value: '0',
+  policyId: 'pol_uniswap_safe',
+});
+
+console.log('decision:', receipt.decision);    // 'allow' | 'deny' | 'approval_required'
+console.log('txHash:', transactionHash);        // null if not executed
+console.log('signature:', receipt.signature);   // EIP-712 signed receipt
 ```
 
 ## Modules
 
-### `agent.verification`
-
-The Verification module is the core boundary for submitting deterministically replayable EVM actions to the protocol. 
+### `ac.evm` — Pre-transaction guard
 
 | Method | Description |
-|---|---|
-| `submitEVMAction(payload: EVMActionPayload)` | Submits an EVM payload to the gateway. The target ActionVerifier will replay the transaction parameters against the provided state root. |
-| `getAttestation(taskId: string)` | Polls the EAS indexing node for the finalized Action Receipt attestation. |
+|--------|-------------|
+| `ac.evm.guardTransaction(input)` | Submit for policy evaluation; returns signed `EvmGuardReceiptV2` (no execution) |
+| `ac.evm.guardAndExecute(wallet, input)` | Guard + execute in one call; throws typed errors on non-allow decisions |
+| `ac.evm.reportExecution(receiptId, txHash)` | Link an on-chain txHash to an `allow` receipt; transitions state to `executed` |
 
-The `submitEVMAction` method handles the full lifecycle:
-1. Wraps the payload into the global Task schema
-2. Automatically generates the `X-402-Payment` header using your available operator balance
-3. Submits the verification request to the Base Sepolia active router
+#### Decision errors from `guardAndExecute`
 
-### `agent.approvals`
+```typescript
+import {
+  AgentChainEvmPolicyDenied,
+  AgentChainEvmApprovalRequired,
+  AgentChainExpiredDecision,
+} from '@humbleaf/agentchain-sdk';
 
-The Approvals module is the programmable governance surface. List, inspect, and resolve approval requests — from scripts, CI/CD, or custom dashboards.
+try {
+  const result = await ac.evm.guardAndExecute(wallet, txInput);
+} catch (err) {
+  if (err instanceof AgentChainEvmPolicyDenied) {
+    console.error('Denied:', err.reasonCodes); // ['VALUE_EXCEEDED', ...]
+  } else if (err instanceof AgentChainEvmApprovalRequired) {
+    console.log('Needs approval:', err.approvalId);
+  } else if (err instanceof AgentChainExpiredDecision) {
+    console.warn('Receipt expired — re-guard and retry');
+  } else {
+    throw err;
+  }
+}
+```
+
+---
+
+### `ac.policies` — Gateway policy management
 
 | Method | Description |
-|---|---|
-| `listApprovals(decision?: string)` | List approval requests filtered by status (`PENDING`, `APPROVED`, `DENIED`, `EXPIRED`). Defaults to `PENDING`. |
-| `getApproval(id: string)` | Get full approval detail including policy evaluations and evidence. |
-| `getApprovalCount()` | Get the number of pending approvals (for badges/polling). |
-| `resolveApproval(id, decision, note?)` | Approve or deny a pending request. If approved, the pipeline resumes. |
-| `registerApprovalWebhook(id, callbackUrl)` | Register a one-shot callback URL for a specific approval (used by Trigger.dev `wait.forToken()`). |
+|--------|-------------|
+| `ac.policies.create(body)` | Create a new policy |
+| `ac.policies.get(policyId, chainId)` | Fetch the current active policy |
+| `ac.policies.update(policyId, chainId, body)` | Bump policy version (creates new immutable snapshot) |
+| `ac.policies.list()` | List all policies for the operator |
+| `ac.policies.listVersions(policyId, chainId)` | List full version history |
+| `ac.policies.hash(body)` | Compute `policyHash` locally (JCS + keccak256) — no network |
+| `ac.policies.hashRemote(body)` | Compute `policyHash` server-side (parity check) |
+
+```typescript
+// Create
+const policy = await ac.policies.create({
+  policyId: 'pol_uniswap_safe',
+  chainId: 84532,
+  label: 'Safe Uniswap swaps on Base Sepolia',
+  rules: {
+    allowedTargets: ['0x2626664c2603336E57B271c5C0b26F421741e481'],
+    allowedSelectors: ['0x414bf389'], // exactInputSingle
+    maxValueWei: '1000000000000000000',
+    maxSlippageBps: 100,
+    dailyCapWei: '5000000000000000000',
+    approvalThresholdWei: '500000000000000000',
+  },
+});
+
+// Update (creates new snapshot version)
+const updated = await ac.policies.update('pol_uniswap_safe', 84532, {
+  rules: { ...policy.rules, maxValueWei: '2000000000000000000' },
+});
+```
+
+---
+
+### `ac.receipts` — Receipt fetch and verification
+
+| Method | Description |
+|--------|-------------|
+| `ac.receipts.get(receiptId)` | Fetch a stored receipt by ID |
+| `ac.receipts.verify(digest, sig, signer)` | Verify EIP-712 signature locally — pure ECDSA, no HTTP |
+| `ac.receipts.verifyRemote(receipt)` | Verify server-side (signature + expiry + state + signer registry) |
+| `ac.receipts.verifyWithAnchor(receipt)` | Two-step: ECDSA verify + `SignerAnchor.isAuthorized()` on-chain check |
+| `ac.receipts.getAnchorStatus(receiptId)` | Poll `ReceiptAnchor` for anchor state + `anchorTxHash` |
+
+#### Local verification (no network)
+
+```typescript
+const valid = ac.receipts.verify(
+  receipt.receiptHash as `0x${string}`,
+  receipt.signature as `0x${string}`,
+  receipt.signerAddress as `0x${string}`,
+);
+```
+
+#### On-chain verification (trustless)
+
+```typescript
+const ac = new AgentChain({
+  apiKey: process.env.AGENTCHAIN_API_KEY,
+  signerAnchorAddress: '0x36cbAE566545e8df3ad15C171a7840266526E28F',
+  signerAnchorChainId: 84532,
+  signerAnchorRpcUrl: 'https://sepolia.base.org',
+});
+
+const result = await ac.receipts.verifyWithAnchor(receipt);
+// result.valid — boolean
+// result.anchorState — 'authorized' | 'revoked' | 'unavailable'
+// result.reasons — string[] (e.g. ['signer_anchor_unavailable'] if RPC fails)
+```
+
+The SDK degrades gracefully: if the `SignerAnchor` RPC call fails, `anchorState` is `'unavailable'` and the result falls back to local ECDSA verification. Never a silent pass.
+
+---
+
+### `ac.approvals` — Approval queue management
+
+| Method | Description |
+|--------|-------------|
+| `ac.approvals.list(decision?)` | List approval requests filtered by status (`PENDING`, `APPROVED`, `DENIED`, `EXPIRED`) |
+| `ac.approvals.get(id)` | Get full approval detail |
+| `ac.approvals.count()` | Get the pending count (for badges / polling) |
+| `ac.approvals.resolve(id, decision, note?)` | Approve or deny a pending request |
+| `ac.approvals.registerWebhook(id, callbackUrl)` | Register a one-shot callback URL for a specific approval |
 
 ```typescript
 // List pending approvals
-const pending = await agent.listApprovals();
+const pending = await ac.approvals.list('PENDING');
 
 // Approve with a note
-const result = await agent.resolveApproval(pending[0].id, 'approved', 'Verified with finance');
-
-// result.receipt contains the full task receipt (if pipeline succeeded)
+await ac.approvals.resolve(pending[0].id, 'approved', 'Verified with finance');
 ```
 
 <Info>
-For threshold configuration, auto-approve rules, webhook setup, and framework integrations, see **[Approval Queue](/agentchain/approval-queue)**.
+For threshold configuration, auto-approve rules, and webhook setup, see **[Approval Queue](/agentchain/approval-queue)**.
 </Info>
+
+---
+
+## `@agentchain/core` — Standalone Canonicalization
+
+The `@agentchain/core` package ships independently and provides the deterministic primitives used by both the gateway and the SDK:
+
+```bash
+npm install @agentchain/core
+```
+
+| Export | Description |
+|--------|-------------|
+| `hashPolicy(body)` | Compute `policyHash` — JCS serialize then `keccak256(utf8(jcs))` |
+| `verifyReceiptSignature(digest, sig, signer)` | Pure ECDSA recover + compare — no SDK dependency |
+| `canonicalizePolicy(body)` | Strip ephemeral fields + lowercase targets (step before hashing) |
+
+Use `@agentchain/core` in environments where you want receipt/policy verification without pulling in the full SDK (e.g., a smart contract relayer, a Rust-adjacent TypeScript service, or an audit script).
+
+---
 
 ## Standalone Codecs
 
-The SDK also exports a standalone IPFS ↔ bytes32 codec:
+The SDK also exports IPFS ↔ bytes32 codecs:
 
 ```typescript
-import { cidToBytes32, bytes32ToCid } from '@agentchain/sdk';
+import { cidToBytes32, bytes32ToCid } from '@humbleaf/agentchain-sdk';
 
 // CID → on-chain storage (32 bytes)
 const bytes32 = cidToBytes32('bafybeif...');
