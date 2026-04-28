@@ -1,0 +1,82 @@
+---
+title: "Deployments"
+description: "Contract addresses for SignerAnchor, ReceiptAnchor, and PolicyAnchor on Base Sepolia and Base mainnet."
+---
+
+<Warning>
+  The anchor contracts have been **implemented and tested** but are **pending on-chain deployment**.
+  Addresses will be published here after the Base Sepolia deploy is executed.
+  This page is the canonical address registry — always use this as your trust root, not hardcoded addresses.
+</Warning>
+
+## Anchor Contracts
+
+These contracts are non-custodial, immutable (no proxy, no upgrade path).
+`SignerAnchor` is owned by a 2-of-3 Gnosis Safe multisig.
+`ReceiptAnchor` is ownerless and permissionless.
+
+| Contract | Purpose | Status |
+|----------|---------|--------|
+| `SignerAnchor` | On-chain registry of authorized receipt signers; powers `isAuthorized()` | ✅ Implemented · ⏳ Pending deploy |
+| `ReceiptAnchor` | Permissionless receipt hash anchoring for `anchored` lifecycle state | ✅ Implemented · ⏳ Pending deploy |
+| `PolicyAnchor` | Optional on-chain policy hash registry for `policySource = "anchored"` | 🔲 Planned (Addendum B §B.5) |
+
+## Deploy Commands
+
+<Note>
+  **⚓ CD-002**: Mainnet deployment is blocked by Captain's Directive CD-002.
+  All deploys target Base Sepolia with `--unverified` until the directive is lifted.
+</Note>
+
+```bash
+# SignerAnchor (requires SIGNER_ANCHOR_OWNER = multisig address)
+forge script script/DeploySignerAnchor.s.sol \
+  --rpc-url $BASE_SEPOLIA_RPC_URL \
+  --broadcast \
+  --private-key $DEPLOYER_PRIVATE_KEY \
+  --unverified
+
+# ReceiptAnchor (no owner — permissionless)
+forge script script/DeployReceiptAnchor.s.sol \
+  --rpc-url $BASE_SEPOLIA_RPC_URL \
+  --broadcast \
+  --private-key $DEPLOYER_PRIVATE_KEY \
+  --unverified
+```
+
+## Base Sepolia (chainId: 84532)
+
+| Contract | Address | BaseScan |
+|----------|---------|---------| 
+| `SignerAnchor` | `PENDING` | — |
+| `ReceiptAnchor` | `PENDING` | — |
+| `PolicyAnchor` | `PENDING` | — |
+| Multisig owner | `PENDING` | — |
+
+## Base Mainnet (chainId: 8453)
+
+<Warning>
+  Blocked by **⚓ CD-002** (Captain's Directive). No mainnet contracts until the directive is lifted.
+  The deploy scripts enforce this at runtime: `require(block.chainid != 8453, ...)`.
+</Warning>
+
+| Contract | Address | BaseScan |
+|----------|---------|---------| 
+| `SignerAnchor` | `PENDING (CD-002)` | — |
+| `ReceiptAnchor` | `PENDING (CD-002)` | — |
+| `PolicyAnchor` | `PENDING (CD-002)` | — |
+| Multisig owner | `PENDING` | — |
+
+## SDK verify fallback
+
+Until `SignerAnchor` is deployed on a given chain, `ReceiptDomain.verifyingContract = 0x00..00`
+and the SDK falls back to the HTTP signer registry at `GET /.well-known/agentchain-signers`.
+This is surfaced via `reasons: ["signer_anchor_unavailable"]` in the verify response — never a silent pass.
+
+## On-disk registry
+
+Addresses are machine-readable at:
+- [`knowledge/deployments/base-sepolia.json`](../../knowledge/deployments/base-sepolia.json)
+- [`knowledge/deployments/base-mainnet.json`](../../knowledge/deployments/base-mainnet.json)
+
+CI verifies this page matches those files after every deploy.

@@ -1,0 +1,138 @@
+---
+title: "EVM Guard Quickstart"
+description: "Submit a transaction through the AgentChain policy engine and get a cryptographically signed receipt in under 60 seconds."
+---
+
+## Overview
+
+AgentChain SDK v2 introduces the **EVM guard flow** — a pre-transaction policy check that returns a signed receipt before any value moves on-chain.
+
+```
+[SDK] → POST /api/v1/evm/guard → [Gateway]
+             ↓
+     policy evaluation
+             ↓
+     EIP-712 signed receipt
+             ↓
+[SDK] → wallet.sendTransaction → [Chain]
+             ↓
+     POST /api/v1/receipts/:id/execution
+```
+
+## Install
+
+```bash
+npm install @humbleaf/agentchain-sdk viem
+```
+
+## Create a client
+
+```typescript
+import { AgentChain } from '@humbleaf/agentchain-sdk';
+
+const ac = new AgentChain({
+  apiKey: process.env.AGENTCHAIN_API_KEY,
+});
+```
+
+`agentId` is no longer required in v2.
+
+## Create a policy
+
+Before guarding any transaction, create a policy for your chain and contract:
+
+```typescript
+await ac.policies.create({
+  policyId: 'pol_uniswap_safe',
+  chainId: 84532, // Base Sepolia
+  label: 'Safe Uniswap swaps',
+  rules: {
+    allowedTargets: ['0x2626664c2603336E57B271c5C0b26F421741e481'],
+    allowedSelectors: ['0x414bf389'], // exactInputSingle
+    maxValueWei: '1000000000000000000',   // 1 ETH max
+    maxSlippageBps: 100,                  // 1%
+    dailyCapWei: '5000000000000000000',   // 5 ETH / day
+    approvalThresholdWei: '500000000000000000', // > 0.5 ETH → approval
+  },
+});
+```
+
+## Guard and execute
+
+```typescript
+import { createWalletClient, http, encodeFunctionData } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { baseSepolia } from 'viem/chains';
+import {
+  AgentChainEvmPolicyDenied,
+  AgentChainEvmApprovalRequired,
+  AgentChainExpiredDecision,
+} from '@humbleaf/agentchain-sdk';
+
+const wallet = createWalletClient({
+  account: privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`),
+  chain: baseSepolia,
+  transport: http(),
+});
+
+try {
+  const { receipt, transactionHash } = await ac.evm.guardAndExecute(wallet, {
+    chainId: 84532,
+    from: wallet.account.address,
+    to: '0x2626664c2603336E57B271c5C0b26F421741e481',
+    data: encodeFunctionData({ abi, functionName: 'exactInputSingle', args: [params] }),
+    value: '0',
+    policyId: 'pol_uniswap_safe',
+  });
+
+  console.log('✓ Transaction sent:', transactionHash);
+  console.log('  Receipt:', receipt.receiptId, '| state:', receipt.state);
+} catch (err) {
+  if (err instanceof AgentChainEvmPolicyDenied) {
+    console.error('✗ Denied:', err.reasonCodes);
+  } else if (err instanceof AgentChainEvmApprovalRequired) {
+    console.log('⏳ Needs approval. approvalId:', err.approvalId);
+  } else if (err instanceof AgentChainExpiredDecision) {
+    console.warn('⟳ Decision expired — retry guardAndExecute');
+  } else {
+    throw err;
+  }
+}
+```
+
+## Guard only (no execution)
+
+If you want the policy decision without executing, use `guardTransaction`:
+
+```typescript
+const receipt = await ac.evm.guardTransaction({
+  chainId: 84532,
+  from: '0x...',
+  to: '0x...',
+  data: '0x...',
+  value: '0',
+  policyId: 'pol_uniswap_safe',
+});
+
+console.log(receipt.decision); // 'allow' | 'deny' | 'approval_required'
+console.log(receipt.reasonCodes); // e.g. ['VALUE_EXCEEDED']
+```
+
+## Verify a receipt locally
+
+No network call required:
+
+```typescript
+const valid = ac.receipts.verify(
+  receipt.receiptHash,
+  receipt.signature,
+  receipt.signerAddress,
+);
+console.log('signature valid:', valid);
+```
+
+## Next steps
+
+- [Policy model](/agentchain/policy-model) — configure rules, thresholds, and caps
+- [Receipts](/agentchain/receipts) — receipt lifecycle, states, and verification
+- [API reference](/api-reference) — REST endpoints

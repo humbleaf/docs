@@ -32,6 +32,6 @@
     "/api/v1/operator/guardrails": "bearer",
     "/api/v1/operator/kill-switch": "bearer"
   },
-  "expectedPublicRouteCount": 53,
-  "_expectedPublicRouteCount_note": "IC-19 rename guard. Update intentionally when adding or removing public routes."
+  "expectedPublicRouteCount": 66,
+  "_expectedPublicRouteCount_note": "IC-19 rename guard. Includes SDK v2 /evm, /policies, /receipts (merged fragment). Re-sync via make export-openapi when possible."
 }

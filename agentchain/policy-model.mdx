@@ -1,0 +1,94 @@
+---
+title: "Policy Model"
+description: "Understand how AgentChain v2 policies are defined, versioned, and hashed."
+---
+
+## What is a policy?
+
+A policy is a gateway-canonical set of rules that the guard engine evaluates against an incoming transaction intent. It binds to a specific **`policyId`** and **`chainId`** — no single policy spans multiple chains.
+
+Every mutation of the rules set creates a new **immutable snapshot** (incremented `version`). The `policyHash` is a deterministic `keccak256(JCS(body))` fingerprint of the policy body at that version.
+
+## Policy shape
+
+```typescript
+type GuardPolicyRulesV2 = {
+  allowedTargets: string[];           // contract addresses (lowercased)
+  allowedSelectors: string[];         // 4-byte function selectors
+  maxValueWei: string;                // max ETH value per tx (decimal string)
+  maxSlippageBps: number;             // max slippage (basis points)
+  dailyCapWei: string;                // rolling 24h aggregate cap
+  approvalThresholdWei: string;       // value above which → approval_required
+};
+```
+
+All string values are decimal-encoded (not hex) for JSON interoperability. `allowedTargets` are stored and compared lowercased.
+
+## Policy hash
+
+The `policyHash` is computed by:
+
+1. Strip ephemeral fields (`owner`, `createdAt`, `updatedAt`, `metadata`)
+2. Lowercase all entries in `allowedTargets`
+3. Serialize with **JCS (RFC 8785)** — canonical JSON
+4. Hash with `keccak256(utf8(jcs_string))`
+
+You can compute it locally (for offline verification) or server-side:
+
+```typescript
+// Local (no network) — @agentchain/core
+const { policyHash, canonical } = ac.policies.hash(policyBody);
+
+// Remote (gateway confirmation)
+const { policyHash } = await ac.policies.hashRemote(policyBody);
+```
+
+Both must return the same hash. A mismatch indicates a bug.
+
+## Guard rules engine
+
+| Rule | Check | Deny reason code |
+|------|-------|-----------------|
+| Target allowlist | `tx.to ∈ allowedTargets` | `PROTOCOL_NOT_ALLOWED` |
+| Selector allowlist | `tx.data[0:4] ∈ allowedSelectors` | `SELECTOR_NOT_ALLOWED` |
+| Max value | `tx.value ≤ maxValueWei` | `VALUE_EXCEEDED` |
+| Slippage | parsed from calldata (selector-aware) | `SLIPPAGE_EXCEEDED` |
+| Daily cap | rolling 24h aggregate ≤ `dailyCapWei` | `DAILY_CAP_EXCEEDED` |
+| Simulation | `eth_call` succeeds (when `simulate: true`) | `SIMULATION_REVERT` |
+| Approval threshold | `tx.value > approvalThresholdWei` | → `approval_required` (not denied) |
+
+Evaluation order: target → selector → value → slippage → daily cap → simulation → threshold.
+
+## CRUD
+
+```typescript
+// Create
+const policy = await ac.policies.create({
+  policyId: 'pol_swap_safe',
+  chainId: 84532,
+  rules: { ... },
+});
+
+// Read
+const current = await ac.policies.get('pol_swap_safe', 84532);
+
+// Update (creates new snapshot version)
+const updated = await ac.policies.update('pol_swap_safe', 84532, {
+  rules: { ...current.rules, maxValueWei: '2000000000000000000' },
+});
+
+// Version history
+const history = await ac.policies.listVersions('pol_swap_safe', 84532);
+```
+
+## policySource field in receipts
+
+| Value | Meaning |
+|-------|---------|
+| `"gateway"` | Policy resolved from the gateway database (MVP default) |
+| `"anchored"` | Policy hash is anchored on-chain via `PolicyAnchor` |
+| `"onchain_registry"` | Policy resolved from `AgentPolicy.sol` (future) |
+
+## Chain binding
+
+A policy binds to exactly one `chainId`. If a guard request arrives with a different `chainId` than the policy's, the gateway returns **HTTP 400 `CHAIN_MISMATCH`**.

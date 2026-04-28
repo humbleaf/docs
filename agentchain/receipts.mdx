@@ -1,0 +1,132 @@
+---
+title: "Receipts"
+description: "Understand the v2 receipt lifecycle, EIP-712 signature structure, and verification methods."
+---
+
+## What is a receipt?
+
+A receipt is a **cryptographically signed, gateway-issued document** that records the outcome of a policy guard request. It is the trust artifact of the AgentChain system — independently verifiable without a network call.
+
+## Receipt lifecycle
+
+```
+issued
+  ├─→ executed  (client reported txHash)
+  │     └─→ anchored  (optional: receipt hash written on-chain)
+  ├─→ denied    (terminal — policy rejected)
+  ├─→ approval_required  (pending human decision)
+  └─→ expired   (decisionExpiresAt passed, never executed)
+```
+
+## Receipt fields
+
+```typescript
+type EvmGuardReceiptV2 = {
+  receiptId: string;           // UUID
+  state: 'issued' | 'executed' | 'denied' | 'approval_required' | 'expired' | 'anchored';
+  decision: 'allow' | 'deny' | 'approval_required';
+
+  // Policy binding
+  policyId: string;
+  chainId: number;
+  policyHash: string;          // keccak256(JCS(policy body at version))
+  policyVersion: number;
+  policySource: 'gateway' | 'anchored' | 'onchain_registry';
+
+  // Transaction intent (what was guarded)
+  from: string;
+  to: string;
+  data: string;
+  value: string;
+  calldataHash: string;        // keccak256(data)
+  simulationHash: string;      // keccak256(blockNum + returnData) — ZERO_B32 in MVP
+
+  // Timing
+  issuedAt: string;            // ISO 8601
+  decisionExpiresAt: string;   // ISO 8601 — MUST send before this
+  receiptExpiresAt: string;    // ISO 8601 (0 = never)
+
+  // Signature (EIP-712)
+  receiptHash: string;         // EIP-712 typed data digest
+  signature: string;           // 65-byte ECDSA (hex)
+  signerAddress: string;       // recovering address
+  signerKeyId: string;         // key rotation handle
+
+  // Deny / approval
+  reasonCodes: string[];       // e.g. ['VALUE_EXCEEDED']
+  approvalId: string | null;   // present when decision = approval_required
+
+  // Execution (filled after reportExecution)
+  executionTxHash: string | null;
+  executionChainId: number | null;
+  executionReportedAt: string | null;
+};
+```
+
+## Signature scheme
+
+Receipts are signed with **EIP-712** (`keccak256(0x1901 ‖ domainSeparator ‖ structHash)`).
+
+```typescript
+const ReceiptDomain = {
+  name: "AgentChain Receipt",
+  version: "2",
+  chainId: <number>,                       // chain the receipt authorizes
+  verifyingContract: "0x0000...0000",      // 0x00 until SignerAnchor is deployed
+};
+```
+
+The `chainId` in the domain separator **binds the signature to a specific chain**. A receipt signed for Base Sepolia (84532) cannot be replayed on Base mainnet (8453) — the domain hash will differ.
+
+## Local verification (no network)
+
+```typescript
+import { AgentChain } from '@humbleaf/agentchain-sdk';
+
+const ac = new AgentChain({ apiKey: '...' });
+const valid = ac.receipts.verify(
+  receipt.receiptHash as `0x${string}`,
+  receipt.signature as `0x${string}`,
+  receipt.signerAddress as `0x${string}`,
+);
+```
+
+Uses `@agentchain/core` `verifyReceiptSignature` — pure ECDSA recover, no HTTP.
+
+## Remote verification
+
+```typescript
+const result = await ac.receipts.verifyRemote(receipt);
+if (!result.valid) {
+  console.error('Invalid:', result.reasons);
+}
+```
+
+The gateway checks signature, expiry, state, and (when available) `SignerAnchor` revocation status.
+
+## Fetch by ID
+
+```typescript
+const stored = await ac.receipts.get(receiptId);
+```
+
+## Report execution
+
+After `guardTransaction` returns `allow`, call this after you send the transaction:
+
+```typescript
+const updated = await ac.evm.reportExecution(receipt.receiptId, txHash);
+// updated.state === 'executed'
+```
+
+`guardAndExecute` calls this automatically.
+
+## `decisionExpiresAt`
+
+The gateway sets `decisionExpiresAt` to `issuedAt + 300s` (configurable). If your execution logic takes more than 5 minutes, call `guardTransaction` again for a fresh receipt.
+
+The SDK throws `AgentChainExpiredDecision` if `decisionExpiresAt < now` when `guardAndExecute` tries to send.
+
+## Anchoring (optional, future)
+
+When a policy has `anchoring = "receipt_hash_onchain"`, the gateway writes the `receiptHash` to `ReceiptAnchor.sol` on the declared chain. The receipt transitions from `executed` → `anchored` after 2 confirmations. See Addendum B §B.4.

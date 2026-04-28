@@ -1,217 +1,229 @@
 {
-  "name": "Humbleaf",
-  "theme": "quill",
-  "font": {
-    "headings": { "family": "Inter", "weight": 600 },
-    "body": { "family": "Inter" }
-  },
-  "colors": {
-    "primary": "#10B981",
-    "light": "#34D399",
-    "dark": "#059669"
-  },
-  "favicon": "/favicon.svg",
-  "logo": {
-    "light": "/logo/light.png",
-    "dark": "/logo/dark.png"
-  },
-  "api": {
-    "baseUrl": "https://api.agentchain.xyz",
-    "playground": {
-      "proxy": true
+    "name": "Humbleaf",
+    "theme": "quill",
+    "font": {
+        "headings": {
+            "family": "Inter",
+            "weight": 600
+        },
+        "body": {
+            "family": "Inter"
+        }
+    },
+    "colors": {
+        "primary": "#10B981",
+        "light": "#34D399",
+        "dark": "#059669"
+    },
+    "favicon": "/favicon.svg",
+    "logo": {
+        "light": "/logo/light.png",
+        "dark": "/logo/dark.png"
+    },
+    "api": {
+        "baseUrl": "https://api.agentchain.xyz",
+        "playground": {
+            "proxy": true
+        }
+    },
+    "openapi": "openapi.json",
+    "tabs": [
+        {
+            "name": "Fundamentals",
+            "url": "agentchain"
+        },
+        {
+            "name": "Operator Guide",
+            "url": "agent-operators"
+        },
+        {
+            "name": "API Reference",
+            "url": "api-reference"
+        },
+        {
+            "name": "Legal",
+            "url": "legal"
+        }
+    ],
+    "navigation": [
+        {
+            "group": "Getting Started",
+            "pages": [
+                "agentchain/guard-quickstart",
+                "agentchain/quickstart",
+                "agentchain/architecture"
+            ]
+        },
+        {
+            "group": "Core Protocol",
+            "pages": [
+                "agentchain/policy-model",
+                "agentchain/receipts",
+                "agentchain/action-verification",
+                "agentchain/policies",
+                "agentchain/approval-queue",
+                "agentchain/attestations",
+                "agentchain/disputes",
+                "agentchain/x402-settlement",
+                "agentchain/governance",
+                "agentchain/deployments"
+            ]
+        },
+        {
+            "group": "Infrastructure",
+            "pages": [
+                "agentchain/mpc-worker",
+                "agentchain/sdk"
+            ]
+        },
+        {
+            "group": "Getting Started",
+            "pages": [
+                "agent-operators/overview"
+            ]
+        },
+        {
+            "group": "Operator Manual",
+            "pages": [
+                "agent-operators/api-keys",
+                "agent-operators/credits-billing",
+                "agent-operators/guardrails",
+                "agent-operators/pioneer"
+            ]
+        },
+        {
+            "group": "Authentication",
+            "pages": [
+                "api-reference/auth/get-current-operator-profile"
+            ]
+        },
+        {
+            "group": "Task Pipeline",
+            "pages": [
+                "api-reference/tasks/submit-a-task-for-execution",
+                "api-reference/tasks/get-task-by-id",
+                "api-reference/tasks/list-tasks-paginated"
+            ]
+        },
+        {
+            "group": "Approval Queue",
+            "pages": [
+                "api-reference/approvals/list-approval-requests",
+                "api-reference/approvals/get-pending-approval-count",
+                "api-reference/approvals/get-approval-request-detail",
+                "api-reference/approvals/resolve-an-approval-request",
+                "api-reference/approvals/register-approval-webhook-callback"
+            ]
+        },
+        {
+            "group": "Attestations",
+            "pages": [
+                "api-reference/attestations/get-attestation-by-uid",
+                "api-reference/attestations/get-attestations-by-task-id"
+            ]
+        },
+        {
+            "group": "Operator Management",
+            "pages": [
+                "api-reference/operator/get-dashboard-overview-stats-credits-agent-count",
+                "api-reference/operator/get-recent-tasks",
+                "api-reference/operator/list-api-keys-redacted",
+                "api-reference/operator/generate-a-new-api-key",
+                "api-reference/operator/revoke-an-api-key",
+                "api-reference/operator/get-credit-balance-and-transaction-history",
+                "api-reference/operator/update-guardrail-config",
+                "api-reference/operator/toggle-kill-switch"
+            ]
+        },
+        {
+            "group": "Developer Tools",
+            "pages": [
+                "api-reference/faucet/fund-wallet-with-mock-usdc"
+            ]
+        },
+        {
+            "group": "Agent Registry",
+            "pages": [
+                "api-reference/agents/register-an-agent",
+                "api-reference/agents/list-agents",
+                "api-reference/agents/get-agent-by-id",
+                "api-reference/agents/update-agent",
+                "api-reference/agents/archive-agent"
+            ]
+        },
+        {
+            "group": "Settlement",
+            "pages": [
+                "api-reference/settlement/list-actions",
+                "api-reference/settlement/get-action-by-id",
+                "api-reference/settlement/list-settlements",
+                "api-reference/settlement/get-settlement-by-id",
+                "api-reference/settlement/settlement-stats"
+            ]
+        },
+        {
+            "group": "Leaderboard",
+            "pages": [
+                "api-reference/leaderboard/get-pioneer-rankings",
+                "api-reference/leaderboard/get-pioneer-events"
+            ]
+        },
+        {
+            "group": "Public Stats",
+            "pages": [
+                "api-reference/public/platform-wide-stats-total-tasks-agents-operators"
+            ]
+        },
+        {
+            "group": "Legal",
+            "pages": [
+                "legal/terms-of-service",
+                "legal/privacy-policy"
+            ]
+        }
+    ],
+    "anchors": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/humbleaf/agentchain-sdk",
+            "icon": "github"
+        },
+        {
+            "name": "Explorer UI",
+            "url": "https://www.agentchain.xyz/#demo",
+            "icon": "globe"
+        }
+    ],
+    "topbarLinks": [
+        {
+            "name": "Support",
+            "url": "mailto:hello@humbleaf.com"
+        }
+    ],
+    "topbarCtaButton": {
+        "name": "Launch App",
+        "url": "https://dashboard.agentchain.xyz"
+    },
+    "contextual": {
+        "options": [
+            "mcp",
+            "add-mcp",
+            "cursor"
+        ]
+    },
+    "footerSocials": {
+        "x": "https://x.com/humbleaf",
+        "github": "https://github.com/humbleaf"
+    },
+    "integrations": {
+        "plausible": {
+            "domain": "agentchain.xyz"
+        }
+    },
+    "feedback": {
+        "suggestEdit": true
+    },
+    "seo": {
+        "indexHiddenPages": false
     }
-  },
-  "openapi": "openapi.json",
-  "tabs": [
-    {
-      "name": "Fundamentals",
-      "url": "agentchain"
-    },
-    {
-      "name": "Operator Guide",
-      "url": "agent-operators"
-    },
-    {
-      "name": "API Reference",
-      "url": "api-reference"
-    },
-    {
-      "name": "Legal",
-      "url": "legal"
-    }
-  ],
-  "navigation": [
-    {
-      "group": "Getting Started",
-      "pages": [
-        "agentchain/quickstart",
-        "agentchain/architecture"
-      ]
-    },
-    {
-      "group": "Core Protocol",
-      "pages": [
-        "agentchain/action-verification",
-        "agentchain/policies",
-        "agentchain/approval-queue",
-        "agentchain/attestations",
-        "agentchain/disputes",
-        "agentchain/x402-settlement",
-        "agentchain/governance"
-      ]
-    },
-    {
-      "group": "Infrastructure",
-      "pages": [
-        "agentchain/mpc-worker",
-        "agentchain/sdk"
-      ]
-    },
-    {
-      "group": "Getting Started",
-      "pages": [
-        "agent-operators/overview"
-      ]
-    },
-    {
-      "group": "Operator Manual",
-      "pages": [
-        "agent-operators/api-keys",
-        "agent-operators/credits-billing",
-        "agent-operators/guardrails",
-        "agent-operators/pioneer"
-      ]
-    },
-    {
-      "group": "Authentication",
-      "pages": [
-        "api-reference/auth/get-current-operator-profile"
-      ]
-    },
-    {
-      "group": "Task Pipeline",
-      "pages": [
-        "api-reference/tasks/submit-a-task-for-execution",
-        "api-reference/tasks/get-task-by-id",
-        "api-reference/tasks/list-tasks-paginated"
-      ]
-    },
-    {
-      "group": "Approval Queue",
-      "pages": [
-        "api-reference/approvals/list-approval-requests",
-        "api-reference/approvals/get-pending-approval-count",
-        "api-reference/approvals/get-approval-request-detail",
-        "api-reference/approvals/resolve-an-approval-request",
-        "api-reference/approvals/register-approval-webhook-callback"
-      ]
-    },
-    {
-      "group": "Attestations",
-      "pages": [
-        "api-reference/attestations/get-attestation-by-uid",
-        "api-reference/attestations/get-attestations-by-task-id"
-      ]
-    },
-    {
-      "group": "Operator Management",
-      "pages": [
-        "api-reference/operator/get-dashboard-overview-stats-credits-agent-count",
-        "api-reference/operator/get-recent-tasks",
-        "api-reference/operator/list-api-keys-redacted",
-        "api-reference/operator/generate-a-new-api-key",
-        "api-reference/operator/revoke-an-api-key",
-        "api-reference/operator/get-credit-balance-and-transaction-history",
-        "api-reference/operator/update-guardrail-config",
-        "api-reference/operator/toggle-kill-switch"
-      ]
-    },
-    {
-      "group": "Developer Tools",
-      "pages": [
-        "api-reference/faucet/fund-wallet-with-mock-usdc"
-      ]
-    },
-    {
-      "group": "Agent Registry",
-      "pages": [
-        "api-reference/agents/register-an-agent",
-        "api-reference/agents/list-agents",
-        "api-reference/agents/get-agent-by-id",
-        "api-reference/agents/update-agent",
-        "api-reference/agents/archive-agent"
-      ]
-    },
-    {
-      "group": "Settlement",
-      "pages": [
-        "api-reference/settlement/list-actions",
-        "api-reference/settlement/get-action-by-id",
-        "api-reference/settlement/list-settlements",
-        "api-reference/settlement/get-settlement-by-id",
-        "api-reference/settlement/settlement-stats"
-      ]
-    },
-    {
-      "group": "Leaderboard",
-      "pages": [
-        "api-reference/leaderboard/get-pioneer-rankings",
-        "api-reference/leaderboard/get-pioneer-events"
-      ]
-    },
-    {
-      "group": "Public Stats",
-      "pages": [
-        "api-reference/public/platform-wide-stats-total-tasks-agents-operators"
-      ]
-    },
-    {
-      "group": "Legal",
-      "pages": [
-        "legal/terms-of-service",
-        "legal/privacy-policy"
-      ]
-    }
-  ],
-  "anchors": [
-    {
-      "name": "GitHub",
-      "url": "https://github.com/humbleaf/agentchain-sdk",
-      "icon": "github"
-    },
-    {
-      "name": "Explorer UI",
-      "url": "https://www.agentchain.xyz/#demo",
-      "icon": "globe"
-    }
-  ],
-  "topbarLinks": [
-    {
-      "name": "Support",
-      "url": "mailto:hello@humbleaf.com"
-    }
-  ],
-  "topbarCtaButton": {
-    "name": "Launch App",
-    "url": "https://dashboard.agentchain.xyz"
-  },
-  "contextual": {
-    "options": ["mcp", "add-mcp", "cursor"]
-  },
-  "footerSocials": {
-    "x": "https://x.com/humbleaf",
-    "github": "https://github.com/humbleaf"
-  },
-  "integrations": {
-    "plausible": {
-      "domain": "agentchain.xyz"
-    }
-  },
-  "feedback": {
-    "suggestEdit": true
-  },
-  "seo": {
-    "indexHiddenPages": false
-  }
 }
-
