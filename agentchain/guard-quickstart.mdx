@@ -160,8 +160,19 @@ const ac = new AgentChain({
 });
 
 const result = await ac.receipts.verifyWithAnchor(receipt);
-console.log('valid:', result.valid);
-console.log('anchorState:', result.anchorState); // 'authorized' | 'revoked' | 'unavailable'
+
+if (result.valid && result.onChainVerified) {
+  // Fully trustless: ECDSA passed + signer confirmed authorized on SignerAnchor
+  console.log('Receipt is fully verified on-chain');
+} else if (result.valid && !result.onChainVerified) {
+  // ECDSA passed but on-chain check skipped or degraded
+  console.log('ECDSA valid; on-chain check skipped:', result.reasons);
+  // reasons: 'signer_anchor_unavailable' | 'signer_anchor_rpc_error'
+} else {
+  // Receipt is invalid
+  console.log('Receipt invalid, reasons:', result.reasons);
+  // reasons: 'signature_mismatch' | 'signer_revoked'
+}
 ```
 
 ## Next steps
