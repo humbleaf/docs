@@ -73,7 +73,7 @@ type EvmGuardReceiptV2 = {
   approvalId: string | null;   // present when decision = approval_required
 
   // Execution (filled after reportExecution)
-  executionTxHash: string | null;
+  executionTxHash: string | null;  // self-reported — NOT covered by ECDSA signature (see below)
   executionChainId: number | null;
   executionReportedAt: string | null;
 
@@ -81,6 +81,19 @@ type EvmGuardReceiptV2 = {
   anchorTxHash: string | null; // tx that wrote receiptHash to ReceiptAnchor
 };
 ```
+
+> **Verifier Note — `executionTxHash` is self-reported**
+>
+> The EIP-712 ECDSA signature covers the receipt body **at issue time**, when `executionTxHash = bytes32(0)`.
+> After `reportExecution()`, the `executionTxHash` field is updated in the database but the **original
+> signature is not re-issued**. Verifiers must use the original `receiptHash` (computed at issue time)
+> for ECDSA verification — not a re-hashed post-execution body.
+
+> **Deny Receipts are Signed**
+>
+> `deny` and `approval_required` receipts are signed with the same ECDSA key as `allow` receipts.
+> **A signed deny receipt is a tamper-evident proof that the system evaluated and blocked the
+> transaction.** The `decision` field is included in the signed EIP-712 struct — it cannot be altered.
 
 ## Signature scheme
 
@@ -130,12 +143,13 @@ const result = await ac.receipts.verifyWithAnchor(receipt);
 2. **On-chain check** — `SignerAnchor.isAuthorized(signerAddress)` returns `true`
 
 ```typescript
-// VerifyReceiptResult discriminated union
+// VerifyReceiptResult — discriminated union on valid + onChainVerified
 type VerifyReceiptResult =
-  | { valid: true;  anchorState: 'authorized'; reasons: [] }
-  | { valid: true;  anchorState: 'unavailable'; reasons: ['signer_anchor_unavailable'] }
-  | { valid: false; anchorState: 'revoked';    reasons: ['signer_revoked'] }
-  | { valid: false; anchorState: 'mismatch';   reasons: ['signature_invalid'] };
+  | { valid: true;  onChainVerified: true  }                         // ECDSA + on-chain: fully trustless
+  | { valid: true;  onChainVerified: false; reasons: string[] }      // ECDSA ok, on-chain degraded
+  | { valid: false; onChainVerified: boolean; reasons: string[] };   // ECDSA failed
+
+// reasons include: 'signature_mismatch' | 'signer_revoked' | 'signer_anchor_unavailable' | 'signer_anchor_rpc_error'
 ```
 
 The SDK degrades gracefully (IC-30): if the RPC call fails, `anchorState` is `'unavailable'` and ECDSA verification alone is used. Never a silent pass.
@@ -173,6 +187,13 @@ const updated = await ac.evm.reportExecution(receipt.receiptId, txHash);
 The gateway sets `decisionExpiresAt` to `issuedAt + 300s` (configurable). If your execution logic takes more than 5 minutes, call `guardTransaction` again for a fresh receipt.
 
 The SDK throws `AgentChainExpiredDecision` if `decisionExpiresAt < now` when `guardAndExecute` tries to send.
+
+> **Policy revocation and the 5-minute window**
+>
+> A receipt issued just before a policy is revoked remains valid for up to **300 seconds** (5 minutes).
+> This is by design — in-flight, already-authorized transactions must be allowed to complete.
+> After `decisionExpiresAt`, `reportExecution` returns `410 DECISION_EXPIRED`.
+> The window cannot be shortened without breaking in-flight transactions.
 
 ## Anchoring
 

@@ -54,12 +54,27 @@ Both must return the same hash. A mismatch indicates a bug.
 | Target allowlist | `tx.to ∈ allowedTargets` | `PROTOCOL_NOT_ALLOWED` |
 | Selector allowlist | `tx.data[0:4] ∈ allowedSelectors` | `SELECTOR_NOT_ALLOWED` |
 | Max value | `tx.value ≤ maxValueWei` | `VALUE_EXCEEDED` |
-| Slippage | parsed from calldata (selector-aware) | `SLIPPAGE_EXCEEDED` |
-| Daily cap | rolling 24h aggregate ≤ `dailyCapWei` | `DAILY_CAP_EXCEEDED` |
+| Slippage | **Not enforced in v0.2** — stored and hashed but not evaluated | *(deferred)* |
+| Daily cap | rolling 24h aggregate ≤ `dailyCapWei` (see note below) | `DAILY_CAP_EXCEEDED` |
 | Simulation | `eth_call` succeeds (when `simulate: true`) | `SIMULATION_REVERT` |
 | Approval threshold | `tx.value > approvalThresholdWei` | → `approval_required` (not denied) |
 
-Evaluation order: target → selector → value → slippage → daily cap → simulation → threshold.
+Evaluation order: target → selector → value → daily cap → simulation → threshold.
+
+> **`maxSlippageBps` is not enforced in v0.2.** The field is stored in the policy body and
+> included in the `policyHash`, but the guard engine does not evaluate it. Pilots setting
+> `maxSlippageBps` should treat it as a label for future enforcement (planned v0.3).
+> Transactions will not be denied based on slippage in the current release.
+
+> **`dailyCapWei` uses a rolling 24-hour window, not a calendar day.**
+> The cap counts executed + anchored transactions in the last 86,400 seconds from the current
+> timestamp — not from midnight UTC. Compliance teams expecting a midnight reset should note this
+> distinction. Calendar-day reset is planned as an opt-in flag in v0.3.
+
+> **`from` address is not constrained in v0.2.**
+> Any address can submit a guard request for your policy. The policy rules constrain what the
+> transaction can **do** (target, selector, value) — not which agent can **request** the guard.
+> Per-caller allowlists (`allowedCallers`) are a v0.3 roadmap item.
 
 ## CRUD
 
@@ -129,3 +144,18 @@ await ac.policies.revoke('pol_swap_safe', 84532);
 ## Chain binding
 
 A policy binds to exactly one `chainId`. If a guard request arrives with a different `chainId` than the policy's, the gateway returns **HTTP 400 `CHAIN_MISMATCH`**.
+
+---
+
+## PolicyAnchor — Security Notes
+
+The `PolicyAnchor` contract is **permissionless**: any address can anchor any `policyId` string for any
+operator address. The first caller wins the `policyKey = keccak256(operatorAddress, policyId, chainId)`.
+
+> **Front-running mitigation**: The AgentChain gateway anchors your policy key immediately on creation
+> (best-effort, async). If the anchor call is delayed, a third party could theoretically claim your
+> `policyKey` before the gateway does. This is a testnet-only risk — the gateway has SLA anchoring
+> within 30 seconds of policy creation. For mainnet, EIP-712 signed anchor claims are planned (v0.3).
+
+Anchoring does NOT affect guard enforcement — the gateway uses its database as the source of truth.
+`PolicyAnchor` is an **audit log**, not a policy registry.
