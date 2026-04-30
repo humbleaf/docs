@@ -181,3 +181,31 @@ if (result.valid && result.onChainVerified) {
 - [Receipts](/agentchain/receipts) — receipt lifecycle, states, and verification
 - [Deployments](/agentchain/deployments) — live anchor contract addresses
 - [API reference](/api-reference) — REST endpoints
+
+---
+
+## Security notes for pilots
+
+### Simulation fail-closed behavior
+
+When `simulate: true` is set in the guard request and the RPC circuit breaker is **OPEN**
+(too many consecutive simulation failures), the guard returns **`503 SIMULATION_DEGRADED`**.
+All subsequent guard requests with `simulate: true` will fail until the circuit recovers.
+
+Pilots should decide their fallback strategy upfront:
+
+| Strategy | Behavior | Risk |
+|---|---|---|
+| Keep `simulate: true`, halt on 503 | Agent stops during outage | Zero false-allows during outage |
+| Fall back to `simulate: false` | Agent continues without revert protection | Transactions may revert on-chain |
+
+The circuit auto-recovers after 60 seconds of no failures (HALF_OPEN → CLOSED).
+
+### 4-byte selector collision limitation
+
+`allowedSelectors` matches on the **first 4 bytes** of calldata. Two different Solidity functions
+can share the same 4-byte selector (keccak256 collision). This is extremely unlikely in practice
+but is a documented limitation.
+
+**Mitigation**: Combine `allowedTargets` + `allowedSelectors` — both must match. The probability
+of a meaningful collision on a _specific target contract_ is negligible for standard EVM deployments.
