@@ -13,18 +13,18 @@ AgentChain's contract system is **upgradeable** via UUPS proxies, governed by th
 
 | Path | Function | Who | Delay | Use Case |
 |---|---|---|---|---|
-| **Standard** | `executeUpgrade(proxy, newImpl)` | StarfleetCommand | 48 hours | Feature additions, optimizations |
-| **Emergency** | `emergencyUpgrade(proxy, newImpl)` | ChiefAdmiral | None | CVE-grade security patches |
+| **Standard** | `executeUpgrade(proxy, newImpl)` | ACFL337Command | 48 hours | Feature additions, optimizations |
+| **Emergency** | `emergencyUpgrade(proxy, newImpl)` | ChiefOperator | None | CVE-grade security patches |
 
 ### Standard Upgrade Flow
 
 ```
-1. chiefAdmiral calls queueAction(target, data, eta)
+1. ChiefOperator calls queueAction(target, data, eta)
    → Action queued with 48h delay
 
 2. Wait 48 hours...
 
-3. chiefAdmiral calls executeUpgrade(proxy, newImpl)
+3. ChiefOperator calls executeUpgrade(proxy, newImpl)
    → Proxy's implementation is updated via UUPS upgradeToAndCall
    → All storage is preserved (proxy pattern)
 ```
@@ -32,13 +32,13 @@ AgentChain's contract system is **upgradeable** via UUPS proxies, governed by th
 ### Emergency Upgrade Flow
 
 ```
-1. chiefAdmiral calls emergencyUpgrade(proxy, newImpl)
+1. ChiefOperator calls emergencyUpgrade(proxy, newImpl)
    → Immediate upgrade, no timelock
-   → Only callable by chiefAdmiral (single key)
+   → Only callable by ChiefOperator (single key)
 ```
 
 <Warning>
-**Emergency upgrades bypass the 48h timelock.** This path exists for critical vulnerabilities only. The chiefAdmiral key is the single point of trust for this capability.
+**Emergency upgrades bypass the 48h timelock.** This path exists for critical vulnerabilities only. The ChiefOperator key is the single point of trust for this capability.
 </Warning>
 
 ---
@@ -47,11 +47,11 @@ AgentChain's contract system is **upgradeable** via UUPS proxies, governed by th
 
 | Role | Address | Power |
 |---|---|---|
-| **ChiefAdmiral** | `0x2a8C31c6705677c04649458AbCcBd82B53CfDf16` | Queue actions, execute upgrades, emergency bypass |
-| **StarfleetCommand** | Same (will migrate to multi-sig) | Execute queued actions after timelock |
+| **ChiefOperator** | `0x2a8C31c6705677c04649458AbCcBd82B53CfDf16` | Queue actions, execute upgrades, emergency bypass |
+| **ACFL337Command** | Same (will migrate to multi-sig) | Execute queued actions after timelock |
 
 <Info>
-**Roadmap:** StarfleetCommand will migrate to a Gnosis Safe multi-sig before mainnet deployment. The chiefAdmiral role will be retained for emergency-only access.
+**Roadmap:** ACFL337Command will migrate to a Gnosis Safe multi-sig before mainnet deployment. The ChiefOperator role will be retained for emergency-only access.
 </Info>
 
 ---
@@ -96,5 +96,5 @@ The 48h timelock gives the community time to review queued upgrades before execu
 | AgentChainHelm V2 | `0x4f9890506Dd7AE325EBB2188610ef32dD312485e` |
 | Network | Base Sepolia (84532) |
 | Timelock | 48 hours (standard path) |
-| Emergency delay | None (chiefAdmiral only) |
+| Emergency delay | None (ChiefOperator only) |
 | Proxy standard | ERC1967 + UUPS |

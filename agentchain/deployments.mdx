@@ -22,8 +22,8 @@ These contracts are non-custodial, immutable (no proxy, no upgrade path).
 ## Deploy Commands
 
 <Note>
-  **⚓ CD-002**: Mainnet deployment is blocked by Captain's Directive CD-002.
-  All deploys target Base Sepolia with `--unverified` until the directive is lifted.
+  All deploys currently target **Base Sepolia** only. Mainnet deployment is pending a security audit.
+  Deploy scripts enforce this at runtime: `require(block.chainid != 8453, "mainnet blocked")`.
 </Note>
 
 ```bash
@@ -57,15 +57,15 @@ Verified on [sepolia.basescan.org](https://sepolia.basescan.org).
 ## Base Mainnet (chainId: 8453)
 
 <Warning>
-  Blocked by **⚓ CD-002** (Captain's Directive). No mainnet contracts until the directive is lifted.
+  Mainnet deployment is pending a security audit. No mainnet contracts are active.
   The deploy scripts enforce this at runtime: `require(block.chainid != 8453, ...)`.
 </Warning>
 
 | Contract | Address | BaseScan |
 |----------|---------|---------|
-| `SignerAnchor` | `PENDING (CD-002)` | — |
-| `ReceiptAnchor` | `PENDING (CD-002)` | — |
-| `PolicyAnchor` | `PENDING (CD-002)` | — |
+| `SignerAnchor` | `PENDING` | — |
+| `ReceiptAnchor` | `PENDING` | — |
+| `PolicyAnchor` | `PENDING` | — |
 | Multisig owner | `PENDING` | — |
 
 ## SDK verify fallback
@@ -89,7 +89,8 @@ const ac = new AgentChain({
 // Two-step ECDSA + on-chain signer check
 const result = await ac.receipts.verifyWithAnchor(receipt);
 // result.valid === true
-// result.anchorState === 'authorized' | 'revoked' | 'unavailable'
+// result.onChainVerified === true | false
+// If !onChainVerified: result.reasons includes 'signer_anchor_unavailable' | 'signer_anchor_rpc_error'
 ```
 
 ## On-disk registry
