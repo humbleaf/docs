@@ -147,6 +147,96 @@ A policy binds to exactly one `chainId`. If a guard request arrives with a diffe
 
 ---
 
+## Internal — ops_action policy domain (`ops-default`)
+
+<Note>
+This section documents the **ops_action** policy kind — repo/workflow evaluate-only guard rules stored in the same `GuardPolicy` / `GuardPolicySnapshot` tables as EVM guard policies. It is **internal dogfood** (not yet in public SDK examples). Rust witness for ops_action remains deferred.
+</Note>
+
+### Domain binding
+
+| Field | Value |
+|-------|-------|
+| `policyId` | `ops-default` |
+| `chainId` | `0` (synthetic non-EVM domain — not an EVM chain) |
+| `policyKind` (in rules) | `"ops_action"` |
+| `policySource` | `"gateway"` (no on-chain anchor for `chainId: 0`) |
+
+Ops policies use the **same** `PolicySnapshotBody` wrapper and **same** `hashPolicyBody` / JCS + keccak256 pipeline as EVM guard policies. The rules body is **not** `GuardPolicyRulesV2` — it carries branch, path, and workflow rules instead.
+
+### Policy body shape
+
+```typescript
+type PolicySnapshotBody = {
+  policyId: 'ops-default';
+  version: number;
+  chainId: 0;
+  rules: OpsActionPolicyRulesV0;
+};
+
+type OpsActionPolicyRulesV0 = {
+  policyKind: 'ops_action';
+  snapshotVersion: 'ops-policy-snapshot-v0.1.0';
+  actionKinds: ('repo.branch_push' | 'repo.workflow_dispatch')[];
+  branchRules: { allowedTargetBranchPrefixes: string[]; protectedBranches: string[]; blockedBranchPrefixes: string[] };
+  pathRules: { denyPatterns: string[]; reviewPatterns: string[]; /* ... */ };
+  workflowRules: { allowlistedWorkflows: string[]; reviewWorkflowPatterns: string[]; denyUnknownWorkflows: boolean; /* ... */ };
+  routeRules: { allowRoute: string; reviewRoute: string; denyRoute: string; workflowFastPathRoute: string };
+  invariants: { noExecutionV0: true; nestOnlyWitness: true; syntheticReceipt: true };
+  reasonCodeVersion: string;
+  routeMatrixVersion: string;
+};
+```
+
+Canonical example: `docs/contracts/trust-router/examples/ops-policy-snapshot-body-v0.1.json`
+
+### Create / seed (internal)
+
+```bash
+# Idempotent — creates ops-default v1 if missing
+OPERATOR_ID=<operator-cuid> DATABASE_URL=<postgres-url> pnpm ops-action:policy:seed
+```
+
+Via gateway API (requires authenticated operator):
+
+```typescript
+await ac.policies.create({
+  policyId: 'ops-default',
+  chainId: 0,
+  label: 'Default ops_action policy',
+  rules: {
+    policyKind: 'ops_action',
+    snapshotVersion: 'ops-policy-snapshot-v0.1.0',
+    // ... branchRules, pathRules, workflowRules, routeRules, invariants
+  },
+});
+```
+
+`chainId: 0` is **only** valid when `rules.policyKind === 'ops_action'`. EVM guard policies still require `1`, `8453`, or `84532`.
+
+### Evaluation flow
+
+```
+ops action request
+  → load GuardPolicySnapshot (ops-default, chainId 0)
+  → evaluateOpsActionV0(action, snapshot.body.rules)
+  → evidence row: policySnapshotId (DB cuid), policyHash, opsMatchedRules
+```
+
+The ops evaluator does **not** execute git push, workflow dispatch, or GitHub API calls — evaluate-only with synthetic ops receipts.
+
+### Hash parity
+
+Ops policy hashes are computable via the same tools as EVM:
+
+```typescript
+const body = { policyId: 'ops-default', version: 1, chainId: 0, rules: { policyKind: 'ops_action', /* ... */ } };
+const { policyHash } = ac.policies.hash(body);       // local
+const remote = await ac.policies.hashRemote(body);   // POST /api/v1/policies/hash
+```
+
+---
+
 ## PolicyAnchor — Security Notes
 
 The `PolicyAnchor` contract is **permissionless**: any address can anchor any `policyId` string for any
