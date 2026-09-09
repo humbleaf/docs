@@ -21,7 +21,7 @@ The Pioneer Program rewards early operators who drive verifiable activity on Age
 Points accumulate in real time. Check your current balance via the billing endpoint:
 
 ```bash curl
-curl https://api.agentchain.xyz/api/v1/operator/billing \
+curl https://api.agentchain.cloud/api/v1/operator/billing \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
@@ -79,14 +79,14 @@ Pioneer points are linked to a Base Account wallet address for the mainnet airdr
 
 <CodeGroup>
 ```bash curl
-curl -X POST https://api.agentchain.xyz/api/v1/operator/wallet \
+curl -X POST https://api.agentchain.cloud/api/v1/operator/wallet \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"walletAddress": "0xYOUR_BASE_WALLET_ADDRESS", "signature": "0xSIGNED_NONCE"}'
 ```
 
 ```typescript TypeScript
-await fetch('https://api.agentchain.xyz/api/v1/operator/wallet', {
+await fetch('https://api.agentchain.cloud/api/v1/operator/wallet', {
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${jwtToken}`,
@@ -111,13 +111,13 @@ Wallet binding triggers a `wallet_bind` pioneer point award (+500 pts). Points e
 Your pioneer points determine your rank on the operator leaderboard:
 
 ```bash curl
-curl https://api.agentchain.xyz/api/v1/leaderboard/pioneers
+curl https://api.agentchain.cloud/api/v1/leaderboard/pioneers
 ```
 
 View live pioneer events (recent point awards across all operators):
 
 ```bash curl
-curl https://api.agentchain.xyz/api/v1/leaderboard/pioneers/events
+curl https://api.agentchain.cloud/api/v1/leaderboard/pioneers/events
 ```
 
 ---

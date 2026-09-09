@@ -127,12 +127,12 @@ We support MetaMask, Coinbase Wallet, and WalletConnect.
 
 <CodeGroup>
 ```bash Step 1: Get nonce
-curl https://api.agentchain.xyz/api/v1/operator/wallet/nonce \
+curl https://api.agentchain.cloud/api/v1/operator/wallet/nonce \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
 ```bash Step 2: Bind wallet
-curl -X POST https://api.agentchain.xyz/api/v1/operator/wallet \
+curl -X POST https://api.agentchain.cloud/api/v1/operator/wallet \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"walletAddress": "0xYOUR_ADDRESS", "signature": "0xSIGNED_NONCE"}'

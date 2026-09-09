@@ -48,7 +48,7 @@ flowchart TD
 Set up approval thresholds in your operator guardrails:
 
 ```bash
-curl -X PATCH https://api.agentchain.xyz/api/v1/operator/guardrails \
+curl -X PATCH https://api.agentchain.cloud/api/v1/operator/guardrails \
   -H "Authorization: Bearer $JWT" \
   -H "Content-Type: application/json" \
   -d '{
@@ -82,7 +82,7 @@ Navigate to **Approvals** in the sidebar. Click into a pending request to see:
 Resolve approvals programmatically using your API key — no browser required:
 
 ```bash
-curl -X PATCH https://api.agentchain.xyz/api/v1/approvals/$APPROVAL_ID \
+curl -X PATCH https://api.agentchain.cloud/api/v1/approvals/$APPROVAL_ID \
   -H "x-api-key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"decision": "approved", "note": "Verified with finance team"}'
@@ -173,7 +173,7 @@ Every webhook includes **both** verification signatures:
   "currency": "USDC",
   "triggerPolicy": "human_approval_threshold",
   "triggerReason": "$12,000 exceeds auto-approve limit of $5,000",
-  "resolveUrl": "https://dashboard.agentchain.xyz/approve/clx9abc123",
+  "resolveUrl": "https://console.agentchain.cloud/approve/clx9abc123",
   "decision": "approved",
   "decidedBy": "operator_xyz",
   "timestamp": "2026-04-12T02:30:00.000Z"
@@ -271,7 +271,7 @@ async function verifyWebhook(req: Request): Promise<boolean> {
 Register a callback URL for a specific approval. When resolved, AgentChain POSTs the result to your URL once and deletes the registration.
 
 ```bash
-curl -X POST https://api.agentchain.xyz/api/v1/approvals/$APPROVAL_ID/callback \
+curl -X POST https://api.agentchain.cloud/api/v1/approvals/$APPROVAL_ID/callback \
   -H "x-api-key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"callbackUrl": "https://your-app.com/webhooks/approval-resolved"}'

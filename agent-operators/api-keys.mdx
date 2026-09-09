@@ -27,14 +27,14 @@ Store your API key in a secret manager or environment variable immediately after
 
 <CodeGroup>
 ```bash curl
-curl -X POST https://api.agentchain.xyz/api/v1/operator/keys \
+curl -X POST https://api.agentchain.cloud/api/v1/operator/keys \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name": "production-agent-001"}'
 ```
 
 ```typescript TypeScript
-const res = await fetch('https://api.agentchain.xyz/api/v1/operator/keys', {
+const res = await fetch('https://api.agentchain.cloud/api/v1/operator/keys', {
   method: 'POST',
   headers: {
     'Authorization': `Bearer ${jwtToken}`,
@@ -55,7 +55,7 @@ const { key, id, createdAt } = await res.json();
 Returns all keys with metadata. The full key value is never returned — only a redacted preview.
 
 ```bash curl
-curl https://api.agentchain.xyz/api/v1/operator/keys \
+curl https://api.agentchain.cloud/api/v1/operator/keys \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
@@ -78,7 +78,7 @@ curl https://api.agentchain.xyz/api/v1/operator/keys \
 Revocation is immediate. Any in-flight requests using the key will start returning `401`.
 
 ```bash curl
-curl -X DELETE https://api.agentchain.xyz/api/v1/operator/keys/key_abc123 \
+curl -X DELETE https://api.agentchain.cloud/api/v1/operator/keys/key_abc123 \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
@@ -89,7 +89,7 @@ curl -X DELETE https://api.agentchain.xyz/api/v1/operator/keys/key_abc123 \
 Pass the key in the `x-api-key` header:
 
 ```bash
-curl https://api.agentchain.xyz/api/v1/tasks \
+curl https://api.agentchain.cloud/api/v1/tasks \
   -H "x-api-key: ac_live_xxxx..."
 ```
 

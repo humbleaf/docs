@@ -12,7 +12,7 @@ Guardrails let you set hard limits on your agent fleet's compute spend and task 
 Update your operator's guardrail configuration:
 
 ```bash curl
-curl -X PATCH https://api.agentchain.xyz/api/v1/operator/guardrails \
+curl -X PATCH https://api.agentchain.cloud/api/v1/operator/guardrails \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -53,7 +53,7 @@ The response body includes the `receipt` object and a `reason` string identifyin
 Actions that exceed a value threshold require human approval before the pipeline continues. No value moves until an operator explicitly approves.
 
 ```bash curl
-curl -X PATCH https://api.agentchain.xyz/api/v1/operator/guardrails \
+curl -X PATCH https://api.agentchain.cloud/api/v1/operator/guardrails \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -88,13 +88,13 @@ The kill switch immediately suspends all task submission for your operator accou
 
 ```bash curl
 # Activate (halt all agents)
-curl -X PATCH https://api.agentchain.xyz/api/v1/operator/kill-switch \
+curl -X PATCH https://api.agentchain.cloud/api/v1/operator/kill-switch \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"active": true}'
 
 # Deactivate (resume)
-curl -X PATCH https://api.agentchain.xyz/api/v1/operator/kill-switch \
+curl -X PATCH https://api.agentchain.cloud/api/v1/operator/kill-switch \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"active": false}'
@@ -124,11 +124,11 @@ PRO and ENTERPRISE operators can generate cryptographically-signed compliance ce
 
 ```bash curl
 # List existing certificates
-curl https://api.agentchain.xyz/api/v1/operator/compliance \
+curl https://api.agentchain.cloud/api/v1/operator/compliance \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 
 # Generate a new certificate on demand
-curl -X POST https://api.agentchain.xyz/api/v1/operator/compliance/generate \
+curl -X POST https://api.agentchain.cloud/api/v1/operator/compliance/generate \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 

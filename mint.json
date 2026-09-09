@@ -21,7 +21,7 @@
         "dark": "/logo/dark.png"
     },
     "api": {
-        "baseUrl": "https://api.agentchain.xyz",
+        "baseUrl": "https://api.agentchain.cloud",
         "playground": {
             "proxy": true
         }
@@ -190,7 +190,7 @@
         },
         {
             "name": "Explorer UI",
-            "url": "https://www.agentchain.xyz/#demo",
+            "url": "https://www.agentchain.cloud/#demo",
             "icon": "globe"
         }
     ],
@@ -202,7 +202,7 @@
     ],
     "topbarCtaButton": {
         "name": "Launch App",
-        "url": "https://dashboard.agentchain.xyz"
+        "url": "https://console.agentchain.cloud"
     },
     "contextual": {
         "options": [
@@ -217,7 +217,7 @@
     },
     "integrations": {
         "plausible": {
-            "domain": "agentchain.xyz"
+            "domain": "agentchain.cloud"
         }
     },
     "feedback": {

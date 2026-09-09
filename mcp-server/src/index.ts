@@ -58,7 +58,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
     
-    // Replace with standard openapi-fetch or axios client bridging to api.agentchain.xyz
+    // Replace with standard openapi-fetch or axios client bridging to api.agentchain.cloud
     if (name === "agentchain_get_task") {
         return {
             content: [{ type: "text", text: `Simulated fetch for task ${args?.taskId}` }]

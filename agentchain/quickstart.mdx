@@ -11,7 +11,7 @@ This quickstart uses the **REST API directly** — no SDK required.
 
 ## Step 1 — Get an API Key
 
-Sign in with GitHub at [AgentChain Dashboard](https://dashboard.agentchain.xyz) and generate an API key from the **API Keys** tab.
+Sign in with GitHub at [AgentChain Dashboard](https://console.agentchain.cloud) and generate an API key from the **API Keys** tab.
 
 ```
 Your API key: ac_live_xxxxxxxxxxxxxxxxxxxx
@@ -29,14 +29,14 @@ Call the faucet to mint MockUSDC to your wallet and pre-fund the payment gate:
 
 <CodeGroup>
 ```bash curl
-curl -X POST https://api.agentchain.xyz/api/v1/faucet/usdc \
+curl -X POST https://api.agentchain.cloud/api/v1/faucet/usdc \
   -H "x-api-key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"wallet": "0xYOUR_WALLET_ADDRESS", "amount": 10}'
 ```
 
 ```typescript TypeScript
-const res = await fetch('https://api.agentchain.xyz/api/v1/faucet/usdc', {
+const res = await fetch('https://api.agentchain.cloud/api/v1/faucet/usdc', {
   method: 'POST',
   headers: {
     'x-api-key': process.env.AGENTCHAIN_API_KEY!,
@@ -52,7 +52,7 @@ const { paymentAddressTxHash, devWalletTxHash, creditsAdded } = await res.json()
 import requests
 
 resp = requests.post(
-  'https://api.agentchain.xyz/api/v1/faucet/usdc',
+  'https://api.agentchain.cloud/api/v1/faucet/usdc',
   headers={'x-api-key': 'YOUR_API_KEY'},
   json={'wallet': '0xYOUR_WALLET_ADDRESS', 'amount': 10},
 )
@@ -87,7 +87,7 @@ PAYMENT_HEADER=$(echo -n '{
   "chainId": 84532
 }' | base64)
 
-curl -X POST https://api.agentchain.xyz/api/v1/tasks/submit \
+curl -X POST https://api.agentchain.cloud/api/v1/tasks/submit \
   -H "x-api-key: YOUR_API_KEY" \
   -H "X-402-Payment: $PAYMENT_HEADER" \
   -H "Content-Type: application/json" \
@@ -116,7 +116,7 @@ const paymentHeader = Buffer.from(JSON.stringify({
   chainId: 84532,
 })).toString('base64');
 
-const task = await fetch('https://api.agentchain.xyz/api/v1/tasks/submit', {
+const task = await fetch('https://api.agentchain.cloud/api/v1/tasks/submit', {
   method: 'POST',
   headers: {
     'x-api-key': process.env.AGENTCHAIN_API_KEY!,
@@ -152,13 +152,13 @@ Every task returns a `TaskReceipt` immediately. Verification happens asynchronou
 
 <CodeGroup>
 ```bash curl
-curl https://api.agentchain.xyz/api/v1/tasks/YOUR_TASK_ID \
+curl https://api.agentchain.cloud/api/v1/tasks/YOUR_TASK_ID \
   -H "x-api-key: YOUR_API_KEY"
 ```
 
 ```typescript TypeScript
 const result = await fetch(
-  `https://api.agentchain.xyz/api/v1/tasks/${taskId}`,
+  `https://api.agentchain.cloud/api/v1/tasks/${taskId}`,
   { headers: { 'x-api-key': process.env.AGENTCHAIN_API_KEY! } },
 );
 const {
@@ -209,7 +209,7 @@ const {
 Query all EAS attestations for a task:
 
 ```bash
-curl https://api.agentchain.xyz/api/v1/attestations/YOUR_TASK_ID
+curl https://api.agentchain.cloud/api/v1/attestations/YOUR_TASK_ID
 ```
 
 ```json

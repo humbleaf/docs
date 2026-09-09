@@ -2851,7 +2851,7 @@
     "tags": [],
     "servers": [
         {
-            "url": "https://api.agentchain.xyz",
+            "url": "https://api.agentchain.cloud",
             "description": "Production"
         }
     ],
