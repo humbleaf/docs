@@ -7,6 +7,9 @@ This pilot runs on **Fly staging**, not `api.agentchain.cloud`.
 
 **Staging API base:** `https://agentchain-discovery-staging.fly.dev/api/v1/discovery`
 
+**Current contracts:** discovery schema `0.3.0` · capability index `0.3.0` ·
+intent rules `intent-rules-v2` · recipes `discovery-recipes-v3`.
+
 Production OpenAPI at [docs.agentchain.cloud/openapi.json](https://docs.agentchain.cloud/openapi.json) does **not** include discovery routes until GCP cutover. Use **[discovery-openapi.json](https://docs.agentchain.cloud/discovery-openapi.json)** (pilot subset), this page, and the staging base above.
 
 **Human / agent entry (marketing):** [humbleaf.xyz/agent-assessment](https://humbleaf.xyz/agent-assessment) · **Machine bundle:** [/.well-known/humbleaf-agent-entry.json](https://humbleaf.xyz/.well-known/humbleaf-agent-entry.json)
@@ -19,7 +22,9 @@ Production OpenAPI at [docs.agentchain.cloud/openapi.json](https://docs.agentcha
 | **Assessor** (human or agent) | Use discovery access + this START; no operator login |
 | **Anonymous** | Intent preview only — no saved assessment |
 
-Assessments belong to the **operator workspace that issued the grant**. A grant from one operator is not visible in another company's workspace.
+Assessments belong to the **operator workspace that issued the grant**. External assessor grants
+are single-assessment actors: they can read and mutate only sessions created by that same grant.
+Operator credentials remain workspace-wide.
 
 ## Human entry (no login)
 
@@ -38,11 +43,13 @@ At issuance the console builds an invitation from the live API response:
 - **Workspace id** the assessor will write into
 - Actual **scopes** and **expiry**
 - Objective and declared exploration allowance (operator-entered)
-- START URL and assessor return contract (session/draft/comparison ids + console locators)
+- Selected track, exact least-privilege scopes, START URL, and the track-specific return contract
 
 Use **Copy private invitation** once to bundle token-free instructions with the `acdg_…` credential. Deliver through your secret channel. Do not put credentials in URL query parameters or public docs.
 
-If the invitation already included discovery access, the assessor proceeds without asking again. If not, stop after anonymous preview and request an invitation.
+If the invitation already included discovery access, the assessor proceeds without asking again.
+If not, stop after anonymous preview and request an invitation. Private export is an explicit
+operator opt-in; it is not part of every assessor grant.
 
 ## Stateless API (no credential)
 
@@ -53,14 +60,42 @@ POST https://agentchain-discovery-staging.fly.dev/api/v1/discovery/public/previe
 Content-Type: application/json
 
 {
-  "desiredOutcome": "Help us understand who should review refund exceptions and whether the review boundary can be made explicit.",
-  "workflowFamily": "refund_exception",
-  "consequentialActions": "human_approval",
+  "desiredOutcome": "Identify one bounded workflow where Humbleaf can improve accountability.",
+  "workflowFamily": "other",
+  "consequentialActions": "unknown",
   "currentFriction": "unknown",
-  "availableInput": "reference_sample_only",
-  "explorationAllowance": "unknown"
+  "availableInput": "none",
+  "explorationAllowance": "unknown",
+  "excludedExperimentIds": ["refund_policy_boundary"]
 }
 ```
+
+If the result asks `candidateFocus`, send the second request with the **entire original input**,
+root-level `previewAnswers`, and the actual available input:
+
+```http
+POST https://agentchain-discovery-staging.fly.dev/api/v1/discovery/public/preview
+Content-Type: application/json
+
+{
+  "desiredOutcome": "Identify one bounded workflow where Humbleaf can improve accountability.",
+  "workflowFamily": "other",
+  "consequentialActions": "unknown",
+  "currentFriction": "unknown",
+  "availableInput": "approved_spec",
+  "explorationAllowance": "unknown",
+  "excludedExperimentIds": ["refund_policy_boundary"],
+  "previewAnswers": [
+    {
+      "questionId": "candidateFocus",
+      "selectedOptionId": "candidate_findings_review"
+    }
+  ]
+}
+```
+
+The completed result selects `document_only_review`. Preserve the exact completed input for
+session import. Preview is stateless: it creates no session and grants no authority.
 
 ### Public projection (recipes + rules, no tenant state)
 
@@ -68,21 +103,33 @@ Content-Type: application/json
 GET https://agentchain-discovery-staging.fly.dev/api/v1/discovery/public/projection
 ```
 
-### Reference sample (MerchantLine exercise document)
+### Optional reference sample (MerchantLine refund exercise only)
 
 ```http
 GET https://agentchain-discovery-staging.fly.dev/api/v1/discovery/public/sample/merchantline-orders
 ```
 
-Use the `document` field from the response as the body for `POST …/sessions/{id}/source`. Label it **reference sample** — not production API.
+Use this only when the selected track is `reference_refund_sample` or the operator explicitly
+accepts it as a labeled exercise. It is never required for a general findings-only assessment.
 
 ## Authenticated assessment
 
-Use **`X-Discovery-Grant: acdg_…`** (assessor) or **`Authorization: Bearer …`** (operator JWT). The console **active mode** selects which header is sent; do not rely on silent fallback between them.
+Use **`X-Discovery-Grant: acdg_…`** (assessor) or **`Authorization: Bearer …`**
+(operator JWT). Never put either credential in a URL. The console **active mode** selects which
+header is sent; do not rely on silent fallback.
+
+Track-specific scopes:
+
+- `fit_shortlist`: `discovery:create`, `discovery:read`
+- `document_only_review`: create, read, submit source, answer, recommend, complete
+- comparison tracks: create, read, submit source, answer, draft, compare
+- `discovery:export_own`: optional and explicit; never a default
 
 ### 1. Create session (revalidate imported plan)
 
-After public preview, send the **same** `previewInput` plus versions from the preview/projection response:
+After public preview, send the **exact completed** `previewInput` plus versions from the
+preview/projection response. The server fully recomputes it. Missing answers, stale versions, and
+recommendation mismatch fail closed with an actionable 400 error.
 
 ```http
 POST https://agentchain-discovery-staging.fly.dev/api/v1/discovery/sessions
@@ -90,19 +137,26 @@ X-Discovery-Grant: acdg_…
 Content-Type: application/json
 
 {
-  "workflowGoal": "Assess refund exception review boundary (reference sample)",
+  "workflowGoal": "Review consequential operations in one approved specification",
   "importedPlan": {
     "previewInput": {
-      "desiredOutcome": "Help us understand who should review refund exceptions and whether the review boundary can be made explicit.",
-      "workflowFamily": "refund_exception",
-      "consequentialActions": "human_approval",
+      "desiredOutcome": "Identify one bounded workflow where Humbleaf can improve accountability.",
+      "workflowFamily": "other",
+      "consequentialActions": "unknown",
       "currentFriction": "unknown",
-      "availableInput": "reference_sample_only",
-      "explorationAllowance": "unknown"
+      "availableInput": "approved_spec",
+      "explorationAllowance": "unknown",
+      "excludedExperimentIds": ["refund_policy_boundary"],
+      "previewAnswers": [
+        {
+          "questionId": "candidateFocus",
+          "selectedOptionId": "candidate_findings_review"
+        }
+      ]
     },
-    "rulesVersion": "intent-rules-v1",
-    "capabilityIndexVersion": "0.1.0",
-    "clientRecommendationId": "refund_policy_boundary"
+    "rulesVersion": "intent-rules-v2",
+    "capabilityIndexVersion": "0.3.0",
+    "clientRecommendationId": "document_only_review"
   }
 }
 ```
@@ -114,12 +168,15 @@ POST …/sessions/{sessionId}/source
 Content-Type: application/json
 
 {
-  "label": "MerchantLine reference sample",
-  "document": { … OpenAPI object from GET public/sample/merchantline-orders … }
+  "label": "Operator-approved workflow API",
+  "document": { … one bounded OpenAPI 3.x object … }
 }
 ```
 
-### 3. Answer a question (reported context — not owner attestation)
+The raw body is not retained. The service stores its digest, a sanitized endpoint snapshot,
+findings, and questions. External references are recorded and never fetched.
+
+### 3. Give every question an explicit disposition
 
 ```http
 POST …/sessions/{sessionId}/answers
@@ -128,11 +185,74 @@ Content-Type: application/json
 {
   "questionId": "q_approver_mapping",
   "answeredBy": "Your name",
+  "disposition": "reports_information",
   "statement": "Describe how approval works today, if known."
 }
 ```
 
-### 4. Create draft
+Allowed dispositions are `reports_information`, `reports_absence`, `unknown`,
+`not_applicable`, `defers`, and `requests_clarification`. Missing or invalid disposition fails
+closed. `not_applicable` is not normalized into substantive information. Every answer is reported
+context with `attestation: none`; it never establishes owner authority.
+
+### 4A. Findings-only: submit one assessor recommendation
+
+Use this branch only when `selectedTrack` is `document_only_review`.
+
+```http
+POST …/sessions/{sessionId}/recommendations
+Content-Type: application/json
+
+{
+  "assessorVersion": "external-agent/1",
+  "disposition": "PROCEED",
+  "riskRanking": [
+    {
+      "rank": 1,
+      "endpointRef": "POST /configuration/releases",
+      "rationale": "Potential production configuration mutation."
+    }
+  ],
+  "pilotRanking": [
+    {
+      "rank": 1,
+      "endpointRef": "POST /configuration/releases",
+      "rationale": "Bounded, reversible shadow observation with a named owner."
+    }
+  ],
+  "recommendedRouteEndpointRef": "POST /configuration/releases",
+  "reasonCodes": ["BOUNDED_SHADOW_FEASIBLE"],
+  "boundaryHypothesis": {
+    "allow": ["Staging-only observation with no downstream write."],
+    "approvalRequired": ["Production activation or expanded authority."],
+    "deny": ["Cross-tenant scope or payload changed after approval."]
+  },
+  "evidenceRequirements": ["actor", "input digest", "decision", "resulting state"],
+  "blockingUnknowns": ["Accountable production owner is not yet attested."]
+}
+```
+
+`REVISE`, `DEFER`, and `NO_RESPONSIBLE_RECOMMENDATION` are valid. The server validates route
+references but does not replace assessor judgment with a hardcoded ranking. It binds the record to
+the source digest, reported-context digest, capability version, author, and generation time.
+
+### 4B. Findings-only: explicitly finish
+
+```http
+POST …/sessions/{sessionId}/complete-track
+Content-Type: application/json
+
+{
+  "track": "document_only_review",
+  "reason": "All generated questions have explicit dispositions and the current recommendation is ready for operator review."
+}
+```
+
+This mutation requires `discovery:complete`. It records actor and reason. It fails if the source is
+missing, a question is untouched, or the recommendation is absent/stale. Success returns
+`state: ready_for_review` and `reviewKind: findings_only`. It does not authorize execution.
+
+### 4C. Policy-comparison tracks only: create draft
 
 ```http
 POST …/sessions/{sessionId}/drafts
@@ -147,7 +267,7 @@ Content-Type: application/json
 }
 ```
 
-### 5. Synthetic comparison (no execution authority)
+### 5. Policy-comparison tracks only: synthetic comparison
 
 ```http
 POST …/drafts/{draftId}/comparison
@@ -159,16 +279,20 @@ Expect `executionAuthorized: false`, `comparisonKind: synthetic_policy_test`.
 
 ```http
 GET …/sessions/{sessionId}
-GET …/sessions/{sessionId}/export
+GET …/sessions/{sessionId}/export  # only with explicit discovery:export_own
 ```
+
+An external assessor can read or export only a session created by that same grant. An operator can
+review all sessions in the operator workspace. Reissuing a grant does not transfer session access.
 
 ### Console locators (no tokens in URL)
 
 The workspace UI lists these for a saved session:
 
-- **Why this workflow:** `https://console.agentchain.cloud/discovery?session={sessionId}`
-- **Policy boundary:** `…&draft={draftId}&comparison={comparisonId}`
+- **Session / recommendation:** `https://console.agentchain.cloud/discovery?session={sessionId}`
+- **Findings:** `…?session={sessionId}#findings`
 - **Open questions:** `…#questions`
+- **Policy boundary** (comparison tracks only): `…&draft={draftId}&comparison={comparisonId}`
 
 Links locate artifacts; they do not grant new permission. Operators read with their signed-in session in the same workspace.
 
@@ -179,6 +303,7 @@ When review and follow-up are complete, the operator uses **End access** in the 
 ## Limits
 
 - Synthetic comparisons only; `executionAuthorized` stays false.
+- A recommendation, proposed boundary, comparison, or `ALLOW` label grants no execution authority.
 - Exploration spend limits are declared/reported, not Humbleaf-enforced on this release unless documented otherwise.
 - Assessor answers are **reported context**, not cryptographic owner attestation.
 
@@ -188,12 +313,14 @@ When you return findings to the operator, include **all** of the following in pl
 
 ### Establishes
 
-What this assessment **demonstrates with inspectable evidence** in the operator workspace — for example:
+What this assessment **demonstrates with inspectable evidence** in the operator workspace:
 
-- A recommended workflow family tied to the declared preview objective (with reason codes you can point to in the session).
-- A draft policy boundary on a specific endpoint ref from the submitted source (reference sample or approved spec).
-- One **synthetic** comparison result with `executionAuthorized: false` and honest labeling of derived vs unevaluated controls.
-- Reported context answers the operator can verify as assessor-attributed statements, not owner proof.
+- The selected track and the exact completed preview input.
+- Document-derived findings from one supplied source digest.
+- Reported context as assessor-attributed statements, not owner proof.
+- For findings-only: one structured disposition, separate risk/pilot rankings, boundary
+  hypotheses, evidence requirements, and blocking unknowns.
+- For comparison tracks only: a draft and synthetic result with `executionAuthorized: false`.
 
 ### Does not establish
 
@@ -204,20 +331,26 @@ What you **must not** imply — for example:
 - Full Authority Surface Map coverage or paid guard deployment.
 - That a synthetic verdict “passing” or showing approval required means the pilot succeeded — **success for the operator is an integration decision**, not comparison-green alone.
 
-If the console shows **draft changed after this comparison**, say so and tell the operator to treat that comparison as historical (IC-10 stale read) unless they request a re-run on the final draft.
+If the console marks a recommendation or comparison stale, report it as historical and do not
+reuse it as current evidence.
 
 ### Smallest next integration
 
-One concrete next step if the operator chooses **proceed** — for example:
+One concrete next step if the assessor disposition is **PROCEED** — for example:
 
 - Upload **approved OpenAPI** and re-run assessment on their real surface (not only MerchantLine reference sample).
 - Authority Surface Map or scoped pilot SKU on a named route/guard.
 - Owner interview to resolve a specific open question id from `#questions`.
 
-Also return **sessionId**, **draftId**, **comparisonId** (when created), and the three console locators:
+Return **sessionId** for every track. Return `draftId` and `comparisonId` only when the selected
+track created them. Include the applicable token-free console locators:
 
-- **Why this workflow:** `https://console.agentchain.cloud/discovery?session={sessionId}`
-- **Policy boundary:** `https://console.agentchain.cloud/discovery?session={sessionId}&draft={draftId}&comparison={comparisonId}`
+- **Session / recommendation:** `https://console.agentchain.cloud/discovery?session={sessionId}`
+- **Findings:** `https://console.agentchain.cloud/discovery?session={sessionId}#findings`
 - **Open questions:** `https://console.agentchain.cloud/discovery?session={sessionId}#questions`
+- **Policy boundary** (comparison tracks only):
+  `https://console.agentchain.cloud/discovery?session={sessionId}&draft={draftId}&comparison={comparisonId}`
 
-End with a explicit recommendation: **proceed**, **revise**, or **defer** (one line why). The operator revokes discovery access when review is complete; that step is not assessor-automated.
+End with **PROCEED**, **REVISE**, **DEFER**, or **NO_RESPONSIBLE_RECOMMENDATION**, and explain
+risk priority separately from pilot priority. The operator revokes discovery access after review;
+that step is not assessor-automated.

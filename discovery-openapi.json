@@ -2,104 +2,210 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Humbleaf Agent Discovery (pilot subset)",
-    "version": "0.2.0",
-    "description": "Machine-readable discovery routes for assessor agents. Full platform OpenAPI at docs.agentchain.cloud/openapi.json omits discovery until GCP cutover. Human entry: https://humbleaf.xyz/agent-assessment — bundle: https://humbleaf.xyz/.well-known/humbleaf-agent-entry.json"
+    "version": "0.3.0",
+    "description": "Machine-readable staging contract for a single-assessment external assessor. Recommendations, comparisons, and ALLOW hypotheses grant no execution authority. Human entry: https://humbleaf.xyz/agent-assessment"
   },
   "servers": [
     {
       "url": "https://agentchain-discovery-staging.fly.dev/api/v1/discovery",
-      "description": "Fly staging (pilot)"
+      "description": "Fly staging pilot"
     }
   ],
   "paths": {
     "/public/projection": {
       "get": {
         "operationId": "discoveryPublicProjection",
-        "summary": "Recipe catalog, rules version, and assessor entry URLs (no auth)",
-        "responses": {
-          "200": { "description": "Public projection including entryPoints" }
-        }
+        "summary": "Rules, recipes, entry points, track contracts, and scopes; no tenant state",
+        "security": [],
+        "responses": { "200": { "description": "Public projection" } }
       }
     },
     "/public/preview": {
       "post": {
         "operationId": "discoveryPublicIntentPreview",
-        "summary": "Deterministic intent narrowing (no auth, no session)",
-        "responses": {
-          "200": { "description": "Intent preview result" }
-        }
+        "summary": "Stateless deterministic intent narrowing; a second root-level previewAnswers request may be required",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/IntentPreviewInput" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Preview input plus recomputed result" } }
       }
     },
     "/public/sample/merchantline-orders": {
       "get": {
         "operationId": "discoveryPublicMerchantLineSample",
-        "summary": "Reference exercise OpenAPI sample (not partner production API)",
-        "responses": {
-          "200": { "description": "Labeled reference document" }
-        }
+        "summary": "Optional fictional refund reference; not required for findings-only review",
+        "security": [],
+        "responses": { "200": { "description": "Labeled exercise document" } }
       }
     },
     "/sessions": {
+      "get": {
+        "operationId": "discoveryListSessions",
+        "summary": "List caller-visible sessions; external grants see only sessions they created",
+        "x-required-scope": "discovery:read",
+        "responses": { "200": { "description": "Session summaries" } }
+      },
       "post": {
         "operationId": "discoveryCreateSession",
-        "summary": "Create assessment session (requires x-discovery-grant or operator auth)",
+        "summary": "Create one grant-owned assessment with strict imported-preview recomputation",
+        "x-required-scope": "discovery:create",
         "responses": {
-          "201": { "description": "Session created" }
+          "201": { "description": "Session created" },
+          "400": { "description": "Stale, incomplete, or mismatched imported preview" }
         }
       }
     },
     "/sessions/{sessionId}": {
       "get": {
         "operationId": "discoveryGetSession",
-        "summary": "Read session view (grant scoped to workspace)",
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string" }
-          }
-        ],
+        "summary": "Read one caller-visible session",
+        "x-required-scope": "discovery:read",
+        "parameters": [{ "$ref": "#/components/parameters/SessionId" }],
         "responses": {
-          "200": { "description": "Session view with findings, questions, nextActions" }
+          "200": { "description": "Session view" },
+          "404": { "description": "Missing or outside caller boundary" }
         }
       }
     },
     "/sessions/{sessionId}/source": {
       "post": {
         "operationId": "discoverySubmitSource",
-        "summary": "Submit bounded OpenAPI document for profiling",
+        "summary": "Profile one bounded OpenAPI source; external references are never fetched",
+        "x-required-scope": "discovery:submit_source",
+        "parameters": [{ "$ref": "#/components/parameters/SessionId" }],
+        "responses": { "200": { "description": "Findings and questions" } }
+      }
+    },
+    "/sessions/{sessionId}/answers": {
+      "post": {
+        "operationId": "discoveryAnswerQuestion",
+        "summary": "Record one explicit answer disposition as reported context, never owner attestation",
+        "x-required-scope": "discovery:answer",
+        "parameters": [{ "$ref": "#/components/parameters/SessionId" }],
         "responses": {
-          "200": { "description": "Findings and questions" }
+          "200": { "description": "Updated session" },
+          "400": { "description": "Missing or invalid explicit disposition" }
         }
       }
     },
-    "/sessions/{sessionId}/questions/{questionId}/answer": {
+    "/sessions/{sessionId}/recommendations": {
       "post": {
-        "operationId": "discoveryAnswerQuestion",
-        "summary": "Record reported context (not owner attestation)",
+        "operationId": "discoverySubmitAssessorRecommendation",
+        "summary": "Append a provenance-bound assessor recommendation with separate risk and pilot rankings",
+        "x-required-scope": "discovery:recommend",
+        "parameters": [{ "$ref": "#/components/parameters/SessionId" }],
         "responses": {
-          "200": { "description": "Updated session" }
+          "200": { "description": "Updated session with current recommendation" },
+          "400": { "description": "Invalid route, ranking, boundary, or disposition" }
         }
+      }
+    },
+    "/sessions/{sessionId}/complete-track": {
+      "post": {
+        "operationId": "discoveryCompleteFindingsTrack",
+        "summary": "Explicitly finish findings-only review; records actor and reason",
+        "x-required-scope": "discovery:complete",
+        "parameters": [{ "$ref": "#/components/parameters/SessionId" }],
+        "responses": {
+          "200": { "description": "ready_for_review / findings_only" },
+          "409": { "description": "Source, dispositions, or current recommendation incomplete" }
+        }
+      }
+    },
+    "/sessions/{sessionId}/drafts": {
+      "post": {
+        "operationId": "discoveryCreateRouteDraft",
+        "summary": "Create a proposed draft for a selected comparison track only",
+        "x-required-scope": "discovery:draft",
+        "parameters": [{ "$ref": "#/components/parameters/SessionId" }],
+        "responses": { "201": { "description": "Proposed draft; activates nothing" } }
+      }
+    },
+    "/drafts/{draftId}/comparison": {
+      "post": {
+        "operationId": "discoveryRunSyntheticComparison",
+        "summary": "Run a side-effect-free synthetic comparison for a selected comparison track",
+        "x-required-scope": "discovery:compare",
+        "parameters": [
+          {
+            "name": "draftId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "Synthetic result with executionAuthorized false" } }
       }
     },
     "/sessions/{sessionId}/export": {
       "get": {
-        "operationId": "discoveryExportAssessment",
-        "summary": "Export private assessment manifest (scope discovery:export)",
+        "operationId": "discoveryExportOwnAssessment",
+        "summary": "Export caller-owned private assessment; external opt-in only",
+        "x-required-scope": "discovery:export_own",
+        "parameters": [{ "$ref": "#/components/parameters/SessionId" }],
         "responses": {
-          "200": { "description": "Assessment manifest" }
+          "200": { "description": "Private assessment manifest" },
+          "403": { "description": "Explicit export scope missing" },
+          "404": { "description": "Session outside caller boundary" }
         }
       }
     }
   },
+  "security": [{ "DiscoveryGrant": [] }],
   "components": {
+    "parameters": {
+      "SessionId": {
+        "name": "sessionId",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" }
+      }
+    },
+    "schemas": {
+      "IntentPreviewInput": {
+        "type": "object",
+        "required": [
+          "desiredOutcome",
+          "workflowFamily",
+          "consequentialActions",
+          "currentFriction",
+          "availableInput",
+          "explorationAllowance"
+        ],
+        "properties": {
+          "desiredOutcome": { "type": "string" },
+          "workflowFamily": { "type": "string" },
+          "consequentialActions": { "type": "string" },
+          "currentFriction": { "type": "string" },
+          "availableInput": { "type": "string" },
+          "explorationAllowance": { "type": "string" },
+          "excludedExperimentIds": { "type": "array", "items": { "type": "string" } },
+          "previewAnswers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["questionId"],
+              "properties": {
+                "questionId": { "type": "string" },
+                "selectedOptionId": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
     "securitySchemes": {
       "DiscoveryGrant": {
         "type": "apiKey",
         "in": "header",
         "name": "x-discovery-grant",
-        "description": "Employee assessor grant issued by operator"
+        "description": "Track-scoped assessor grant issued by an operator; never place it in a URL"
       }
     }
   }
