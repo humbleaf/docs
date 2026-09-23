@@ -5,19 +5,27 @@ description: Anonymous intent preview and authenticated assessment on Fly stagin
 
 This pilot runs on **Fly staging**, not `api.agentchain.cloud`.
 
+**Staging API base:** `https://agentchain-discovery-staging.fly.dev/api/v1/discovery`
+
+Production OpenAPI at [docs.agentchain.cloud/openapi.json](https://docs.agentchain.cloud/openapi.json) does **not** include discovery routes until GCP cutover. Use this page and the staging base above.
+
 ## Human entry (no login)
 
 - **Intent preview form:** [console.agentchain.cloud/discovery/preview](https://console.agentchain.cloud/discovery/preview)
 - **Saved assessment workspace:** [console.agentchain.cloud/discovery](https://console.agentchain.cloud/discovery)
 
+If a previous employee grant expired, open the workspace, choose credential mode **operator** (when signed in), or clear the grant field and sign in — stale grants in the browser are cleared automatically on 401 when an operator session exists.
+
 ## Stateless API (no credential)
+
+### Preview
 
 ```http
 POST https://agentchain-discovery-staging.fly.dev/api/v1/discovery/public/preview
 Content-Type: application/json
 
 {
-  "desiredOutcome": "Reduce refund exceptions",
+  "desiredOutcome": "Help us understand who should review refund exceptions and whether the review boundary can be made explicit.",
   "workflowFamily": "refund_exception",
   "consequentialActions": "human_approval",
   "currentFriction": "unknown",
@@ -26,27 +34,121 @@ Content-Type: application/json
 }
 ```
 
-Public projection (recipes + rules versions, no tenant state):
+### Public projection (recipes + rules, no tenant state)
 
 ```http
 GET https://agentchain-discovery-staging.fly.dev/api/v1/discovery/public/projection
 ```
 
+### Reference sample (MerchantLine exercise document)
+
+```http
+GET https://agentchain-discovery-staging.fly.dev/api/v1/discovery/public/sample/merchantline-orders
+```
+
+Use the `document` field from the response as the body for `POST …/sessions/{id}/source`. Label it **reference sample** in your assessment — not partner production API.
+
 ## Authenticated assessment
 
-Base URL: `https://agentchain-discovery-staging.fly.dev/api/v1/discovery`
+All authenticated routes use header **`X-Discovery-Grant: acdg_…`** (employee) or **`Authorization: Bearer …`** (operator Dynamic JWT). Never send both unless your client documents precedence; the console prefers grant when in employee mode.
 
-Use operator bearer token or `X-Discovery-Grant: acdg_…` for employee access.
+### 1. Create session (revalidate imported plan)
 
-When creating a session, send `importedPlan` with **full** `previewInput`, `rulesVersion`, and `capabilityIndexVersion`. The server recomputes the recommendation; client-only selections are not trusted.
+After public preview, send the **same** `previewInput` plus versions from the preview/projection response:
 
-Employee answers are stored as **reported context** — not verified owner attestation.
+```http
+POST https://agentchain-discovery-staging.fly.dev/api/v1/discovery/sessions
+X-Discovery-Grant: acdg_…
+Content-Type: application/json
 
-## Sample document
+{
+  "workflowGoal": "Assess refund exception review boundary (reference sample)",
+  "importedPlan": {
+    "previewInput": {
+      "desiredOutcome": "Help us understand who should review refund exceptions and whether the review boundary can be made explicit.",
+      "workflowFamily": "refund_exception",
+      "consequentialActions": "human_approval",
+      "currentFriction": "unknown",
+      "availableInput": "reference_sample_only",
+      "explorationAllowance": "unknown"
+    },
+    "rulesVersion": "intent-rules-v1",
+    "capabilityIndexVersion": "0.1.0",
+    "clientRecommendationId": "refund_policy_boundary"
+  }
+}
+```
 
-Repository fixture: `packages/agent-discovery/test/fixtures/merchantline-orders.openapi.json`
+### 2. Submit source
+
+```http
+POST …/sessions/{sessionId}/source
+Content-Type: application/json
+
+{
+  "label": "MerchantLine reference sample",
+  "document": { … OpenAPI object from GET public/sample/merchantline-orders … }
+}
+```
+
+### 3. Answer a question (reported context — not owner attestation)
+
+```http
+POST …/sessions/{sessionId}/answers
+Content-Type: application/json
+
+{
+  "questionId": "q_approver_mapping",
+  "answeredBy": "Your name",
+  "statement": "Describe how approval works today, if known."
+}
+```
+
+Findings use `basis: reported_context` — not verified owner proof.
+
+### 4. Create draft
+
+```http
+POST …/sessions/{sessionId}/drafts
+Content-Type: application/json
+
+{
+  "endpointRef": "POST /v2/orders/{orderId}/refunds",
+  "title": "Refund guard",
+  "approvalThresholdMinor": 5000,
+  "perOperationCapMinor": 10000,
+  "currency": "USD"
+}
+```
+
+### 5. Synthetic comparison (no execution authority)
+
+```http
+POST …/drafts/{draftId}/comparison
+```
+
+Expect `executionAuthorized: false`, `comparisonKind: synthetic_policy_test`.
+
+### 6. Read / export
+
+```http
+GET …/sessions/{sessionId}
+GET …/sessions/{sessionId}/export
+```
+
+### Console deep links (no tokens in URL)
+
+- Session: `https://console.agentchain.cloud/discovery?session={sessionId}`
+- Policy boundary: `…&draft={draftId}&comparison={comparisonId}`
+
+## Operator setup (human)
+
+1. Sign in at [console.agentchain.cloud](https://console.agentchain.cloud).
+2. Discovery workspace → **Employee access** → issue grant; deliver `acdg_…` once via your secret channel.
+3. Revoke obsolete grants in the same panel after reissue.
 
 ## Limits
 
 - Synthetic comparisons only; `executionAuthorized` stays false.
 - Exploration spend limits are declared/reported, not Humbleaf-enforced on this release.
+- Employee answers are **reported context**, not cryptographic owner attestation.
