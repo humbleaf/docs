@@ -179,3 +179,43 @@ When review and follow-up are complete, the operator uses **End access** in the 
 - Synthetic comparisons only; `executionAuthorized` stays false.
 - Exploration spend limits are declared/reported, not Humbleaf-enforced on this release unless documented otherwise.
 - Assessor answers are **reported context**, not cryptographic owner attestation.
+
+## Appendix — assessor report (required sections)
+
+When you return findings to the operator, include **all** of the following in plain language (≤600 words plus a compact evidence table is fine). The operator should run the internal **operator review playbook (v1)** — 30-minute script with the same three console locators — before **End access**.
+
+### Establishes
+
+What this assessment **demonstrates with inspectable evidence** in the operator workspace — for example:
+
+- A recommended workflow family tied to the declared preview objective (with reason codes you can point to in the session).
+- A draft policy boundary on a specific endpoint ref from the submitted source (reference sample or approved spec).
+- One **synthetic** comparison result with `executionAuthorized: false` and honest labeling of derived vs unevaluated controls.
+- Reported context answers the operator can verify as assessor-attributed statements, not owner proof.
+
+### Does not establish
+
+What you **must not** imply — for example:
+
+- Live execution, production approval, or enforcement on the customer’s API.
+- Cryptographic attestation that operational facts in answers are true.
+- Full Authority Surface Map coverage or paid guard deployment.
+- That a synthetic verdict “passing” or showing approval required means the pilot succeeded — **success for the operator is an integration decision**, not comparison-green alone.
+
+If the console shows **draft changed after this comparison**, say so and tell the operator to treat that comparison as historical (IC-10 stale read) unless they request a re-run on the final draft.
+
+### Smallest next integration
+
+One concrete next step if the operator chooses **proceed** — for example:
+
+- Upload **approved OpenAPI** and re-run assessment on their real surface (not only MerchantLine reference sample).
+- Authority Surface Map or scoped pilot SKU on a named route/guard.
+- Owner interview to resolve a specific open question id from `#questions`.
+
+Also return **sessionId**, **draftId**, **comparisonId** (when created), and the three console locators:
+
+- **Why this workflow:** `https://console.agentchain.cloud/discovery?session={sessionId}`
+- **Policy boundary:** `https://console.agentchain.cloud/discovery?session={sessionId}&draft={draftId}&comparison={comparisonId}`
+- **Open questions:** `https://console.agentchain.cloud/discovery?session={sessionId}#questions`
+
+End with a explicit recommendation: **proceed**, **revise**, or **defer** (one line why). The operator revokes discovery access when review is complete; that step is not assessor-automated.
