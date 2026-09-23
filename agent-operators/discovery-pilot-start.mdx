@@ -1,0 +1,52 @@
+---
+title: Discovery pilot START (staging)
+description: Anonymous intent preview and authenticated assessment on Fly staging.
+---
+
+This pilot runs on **Fly staging**, not `api.agentchain.cloud`.
+
+## Human entry (no login)
+
+- **Intent preview form:** [console.agentchain.cloud/discovery/preview](https://console.agentchain.cloud/discovery/preview)
+- **Saved assessment workspace:** [console.agentchain.cloud/discovery](https://console.agentchain.cloud/discovery)
+
+## Stateless API (no credential)
+
+```http
+POST https://agentchain-discovery-staging.fly.dev/api/v1/discovery/public/preview
+Content-Type: application/json
+
+{
+  "desiredOutcome": "Reduce refund exceptions",
+  "workflowFamily": "refund_exception",
+  "consequentialActions": "human_approval",
+  "currentFriction": "unknown",
+  "availableInput": "reference_sample_only",
+  "explorationAllowance": "unknown"
+}
+```
+
+Public projection (recipes + rules versions, no tenant state):
+
+```http
+GET https://agentchain-discovery-staging.fly.dev/api/v1/discovery/public/projection
+```
+
+## Authenticated assessment
+
+Base URL: `https://agentchain-discovery-staging.fly.dev/api/v1/discovery`
+
+Use operator bearer token or `X-Discovery-Grant: acdg_…` for employee access.
+
+When creating a session, send `importedPlan` with **full** `previewInput`, `rulesVersion`, and `capabilityIndexVersion`. The server recomputes the recommendation; client-only selections are not trusted.
+
+Employee answers are stored as **reported context** — not verified owner attestation.
+
+## Sample document
+
+Repository fixture: `packages/agent-discovery/test/fixtures/merchantline-orders.openapi.json`
+
+## Limits
+
+- Synthetic comparisons only; `executionAuthorized` stays false.
+- Exploration spend limits are declared/reported, not Humbleaf-enforced on this release.

@@ -88,7 +88,8 @@
                 "agent-operators/api-keys",
                 "agent-operators/credits-billing",
                 "agent-operators/guardrails",
-                "agent-operators/pioneer"
+                "agent-operators/pioneer",
+                "agent-operators/discovery-pilot-start"
             ]
         },
         {
