@@ -9,12 +9,38 @@ This pilot runs on **Fly staging**, not `api.agentchain.cloud`.
 
 Production OpenAPI at [docs.agentchain.cloud/openapi.json](https://docs.agentchain.cloud/openapi.json) does **not** include discovery routes until GCP cutover. Use this page and the staging base above.
 
+## Roles
+
+| Role | What you do |
+|------|-------------|
+| **Operator** | Sign in at the console, issue discovery access for your workspace, review the same assessment, end access when done |
+| **Assessor** (human or agent) | Use discovery access + this START; no operator login |
+| **Anonymous** | Intent preview only — no saved assessment |
+
+Assessments belong to the **operator workspace that issued the grant**. A grant from one operator is not visible in another company's workspace.
+
 ## Human entry (no login)
 
-- **Intent preview form:** [console.agentchain.cloud/discovery/preview](https://console.agentchain.cloud/discovery/preview)
-- **Saved assessment workspace:** [console.agentchain.cloud/discovery](https://console.agentchain.cloud/discovery)
+- **Intent preview:** [console.agentchain.cloud/discovery/preview](https://console.agentchain.cloud/discovery/preview)
+- **Workspace (assessor or operator):** [console.agentchain.cloud/discovery](https://console.agentchain.cloud/discovery)
 
-If a previous employee grant expired, open the workspace, choose credential mode **operator** (when signed in), or clear the grant field and sign in — stale grants in the browser are cleared automatically on 401 when an operator session exists.
+Operators sign in on the workspace page, then use **Invite your agent** to issue access and copy the invitation (public or private copy actions).
+
+If assessor access expired, the operator issues new access. Stale browser credentials clear on 401 when an operator session is also present.
+
+## Invitation (operator)
+
+At issuance the console builds an invitation from the live API response:
+
+- Environment label and API base (not hardcoded staging copy)
+- **Workspace id** the assessor will write into
+- Actual **scopes** and **expiry**
+- Objective and declared exploration allowance (operator-entered)
+- START URL and assessor return contract (session/draft/comparison ids + console locators)
+
+Use **Copy private invitation** once to bundle token-free instructions with the `acdg_…` credential. Deliver through your secret channel. Do not put credentials in URL query parameters or public docs.
+
+If the invitation already included discovery access, the assessor proceeds without asking again. If not, stop after anonymous preview and request an invitation.
 
 ## Stateless API (no credential)
 
@@ -46,11 +72,11 @@ GET https://agentchain-discovery-staging.fly.dev/api/v1/discovery/public/project
 GET https://agentchain-discovery-staging.fly.dev/api/v1/discovery/public/sample/merchantline-orders
 ```
 
-Use the `document` field from the response as the body for `POST …/sessions/{id}/source`. Label it **reference sample** in your assessment — not partner production API.
+Use the `document` field from the response as the body for `POST …/sessions/{id}/source`. Label it **reference sample** — not production API.
 
 ## Authenticated assessment
 
-All authenticated routes use header **`X-Discovery-Grant: acdg_…`** (employee) or **`Authorization: Bearer …`** (operator Dynamic JWT). Never send both unless your client documents precedence; the console prefers grant when in employee mode.
+Use **`X-Discovery-Grant: acdg_…`** (assessor) or **`Authorization: Bearer …`** (operator JWT). The console **active mode** selects which header is sent; do not rely on silent fallback between them.
 
 ### 1. Create session (revalidate imported plan)
 
@@ -104,8 +130,6 @@ Content-Type: application/json
 }
 ```
 
-Findings use `basis: reported_context` — not verified owner proof.
-
 ### 4. Create draft
 
 ```http
@@ -136,19 +160,22 @@ GET …/sessions/{sessionId}
 GET …/sessions/{sessionId}/export
 ```
 
-### Console deep links (no tokens in URL)
+### Console locators (no tokens in URL)
 
-- Session: `https://console.agentchain.cloud/discovery?session={sessionId}`
-- Policy boundary: `…&draft={draftId}&comparison={comparisonId}`
+The workspace UI lists these for a saved session:
 
-## Operator setup (human)
+- **Why this workflow:** `https://console.agentchain.cloud/discovery?session={sessionId}`
+- **Policy boundary:** `…&draft={draftId}&comparison={comparisonId}`
+- **Open questions:** `…#questions`
 
-1. Sign in at [console.agentchain.cloud](https://console.agentchain.cloud).
-2. Discovery workspace → **Employee access** → issue grant; deliver `acdg_…` once via your secret channel.
-3. Revoke obsolete grants in the same panel after reissue.
+Links locate artifacts; they do not grant new permission. Operators read with their signed-in session in the same workspace.
+
+## End access
+
+When review and follow-up are complete, the operator uses **End access** in the invitation panel. That stops future assessor requests; it does not delete the assessment. A `ready_for_review` state or an existing comparison does **not** auto-revoke access.
 
 ## Limits
 
 - Synthetic comparisons only; `executionAuthorized` stays false.
-- Exploration spend limits are declared/reported, not Humbleaf-enforced on this release.
-- Employee answers are **reported context**, not cryptographic owner attestation.
+- Exploration spend limits are declared/reported, not Humbleaf-enforced on this release unless documented otherwise.
+- Assessor answers are **reported context**, not cryptographic owner attestation.
