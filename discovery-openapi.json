@@ -1,0 +1,106 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Humbleaf Agent Discovery (pilot subset)",
+    "version": "0.2.0",
+    "description": "Machine-readable discovery routes for assessor agents. Full platform OpenAPI at docs.agentchain.cloud/openapi.json omits discovery until GCP cutover. Human entry: https://humbleaf.xyz/agent-assessment — bundle: https://humbleaf.xyz/.well-known/humbleaf-agent-entry.json"
+  },
+  "servers": [
+    {
+      "url": "https://agentchain-discovery-staging.fly.dev/api/v1/discovery",
+      "description": "Fly staging (pilot)"
+    }
+  ],
+  "paths": {
+    "/public/projection": {
+      "get": {
+        "operationId": "discoveryPublicProjection",
+        "summary": "Recipe catalog, rules version, and assessor entry URLs (no auth)",
+        "responses": {
+          "200": { "description": "Public projection including entryPoints" }
+        }
+      }
+    },
+    "/public/preview": {
+      "post": {
+        "operationId": "discoveryPublicIntentPreview",
+        "summary": "Deterministic intent narrowing (no auth, no session)",
+        "responses": {
+          "200": { "description": "Intent preview result" }
+        }
+      }
+    },
+    "/public/sample/merchantline-orders": {
+      "get": {
+        "operationId": "discoveryPublicMerchantLineSample",
+        "summary": "Reference exercise OpenAPI sample (not partner production API)",
+        "responses": {
+          "200": { "description": "Labeled reference document" }
+        }
+      }
+    },
+    "/sessions": {
+      "post": {
+        "operationId": "discoveryCreateSession",
+        "summary": "Create assessment session (requires x-discovery-grant or operator auth)",
+        "responses": {
+          "201": { "description": "Session created" }
+        }
+      }
+    },
+    "/sessions/{sessionId}": {
+      "get": {
+        "operationId": "discoveryGetSession",
+        "summary": "Read session view (grant scoped to workspace)",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Session view with findings, questions, nextActions" }
+        }
+      }
+    },
+    "/sessions/{sessionId}/source": {
+      "post": {
+        "operationId": "discoverySubmitSource",
+        "summary": "Submit bounded OpenAPI document for profiling",
+        "responses": {
+          "200": { "description": "Findings and questions" }
+        }
+      }
+    },
+    "/sessions/{sessionId}/questions/{questionId}/answer": {
+      "post": {
+        "operationId": "discoveryAnswerQuestion",
+        "summary": "Record reported context (not owner attestation)",
+        "responses": {
+          "200": { "description": "Updated session" }
+        }
+      }
+    },
+    "/sessions/{sessionId}/export": {
+      "get": {
+        "operationId": "discoveryExportAssessment",
+        "summary": "Export private assessment manifest (scope discovery:export)",
+        "responses": {
+          "200": { "description": "Assessment manifest" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "DiscoveryGrant": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-discovery-grant",
+        "description": "Employee assessor grant issued by operator"
+      }
+    }
+  }
+}

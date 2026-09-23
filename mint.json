@@ -77,6 +77,12 @@
             ]
         },
         {
+            "group": "Agent assessment (pilot)",
+            "pages": [
+                "agent-operators/discovery-pilot-start"
+            ]
+        },
+        {
             "group": "Getting Started",
             "pages": [
                 "agent-operators/overview"
