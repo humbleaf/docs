@@ -1,0 +1,34 @@
+---
+title: Humbleaf MCP (authority)
+description: Agent-facing authority MCP on the API gateway — distinct from docs search MCP and the local mcp-oracle scaffold.
+---
+
+This page describes **Humbleaf MCP**: the guarded **agent authority** interface on the AgentChain API gateway (`POST /mcp`, mandate bearer `acmd_…`). It is **not** the same product as:
+
+| Interface | What it is | Where |
+|-----------|------------|--------|
+| **Mintlify docs MCP** | Documentation search only; no side effects | Hosted at [docs.agentchain.cloud/mcp](https://docs.agentchain.cloud/mcp) (see `apps/docs/mint.json` contextual MCP) |
+| **`@agentchain/mcp-oracle`** | Local stdio demo over OpenAPI; simulated fetch | `apps/docs/mcp-server` — see its README |
+| **Humbleaf MCP (authority)** | Ten logical tools + inbox reads; human approval in console; one guarded email-reply route | Gateway `/mcp` when enabled |
+
+## Status (HMCP-1)
+
+- **Pilot provider:** fixture / **simulated** dispatch only (decision **D3**). No Instantly reply adapter in the current sprint build.
+- **Do not** point production outreach at live provider env until operator runbook promotion gates pass.
+- Operator procedures and bypass inventory live in the repo (not duplicated here): `docs/proposals/OctMCP/hmcp-operator-runbook.md` and `docs/proposals/OctMCP/hmcp-coverage-statement.md`.
+
+## What agents can do (when enabled)
+
+- Authenticate with an operator-issued **agent mandate** (`acmd_…`), not a discovery grant (`acdg_…`).
+- Discover and describe the route `email.thread_reply.guard.v1`, read scoped inbox threads, **propose** a frozen reply, poll status, **execute** after console approval, and fetch receipts — subject to mandate caps and workspace isolation.
+- Chat or host “approve” text is **not** approval; a human session on [console.agentchain.cloud](https://console.agentchain.cloud) decides.
+
+## Enablement (operators)
+
+Gateway flag **`HUMBLEAF_MCP_ENABLED=true`** (exact string). Staging pilot also requires evidence persistence and **`HUMBLEAF_EMAIL_REPLY_PROVIDER=fixture`** for safe acceptance. Secrets (`AP_SNAPSHOT_SIGNING_KEY`, executor tokens, mandate bearers) stay in deployment env — never in this docs site.
+
+## Endpoint
+
+Pilot deployments use the discovery staging host unless otherwise decided (see construction plan §11). Path: **`/mcp`**, Streamable HTTP, `Authorization: Bearer acmd_…`.
+
+For local harnesses, see `scripts/dev/hmcp-grokbot/` in the monorepo.

@@ -95,7 +95,8 @@
                 "agent-operators/credits-billing",
                 "agent-operators/guardrails",
                 "agent-operators/pioneer",
-                "agent-operators/discovery-pilot-start"
+                "agent-operators/discovery-pilot-start",
+                "agent-operators/humbleaf-mcp-authority"
             ]
         },
         {
